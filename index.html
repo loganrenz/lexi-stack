@@ -1088,12 +1088,24 @@
       const tileId = `${row}-${col}`;
       const existingCanvas = tileDiv.querySelector('canvas');
       
+      // Verify letter matches what's in the grid
+      const gridTile = grid[row] && grid[row][col];
+      if (gridTile && gridTile.letter !== letter) {
+        console.error(`Letter mismatch at [${row},${col}]: grid has "${gridTile.letter}", rendering "${letter}"`);
+        // Use the letter from grid to ensure consistency
+        letter = gridTile.letter;
+      }
+      
       // Only recreate canvas if letter, isHigh, or isSelected changed
       const cacheKey = `${letter}-${isHigh}-${isSelected}`;
       const cached = tileRenderers.get(tileId);
       
       if (cached && cached.cacheKey === cacheKey && existingCanvas) {
         // Canvas already exists and matches, just update classes
+        // But verify the letter attribute matches
+        if (tileDiv.dataset.letter !== letter) {
+          tileDiv.dataset.letter = letter;
+        }
         return;
       }
       
@@ -1120,10 +1132,15 @@
       
       // Create new canvas
       const canvas = createThreeJSText(letter, isHigh, isSelected);
+      // Store letter on canvas for debugging
+      canvas.dataset.letter = letter;
       tileDiv.appendChild(canvas);
       
+      // Ensure data attribute matches
+      tileDiv.dataset.letter = letter;
+      
       // Cache the render info
-      tileRenderers.set(tileId, { cacheKey, canvas });
+      tileRenderers.set(tileId, { cacheKey, canvas, letter });
     }
     
     function updateTileSelection(row, col, isSelected) {
@@ -1179,6 +1196,8 @@
               div.classList.add(`value-${letterValue}`);
               if (isHigh) div.classList.add('high');
               if (isSelected) div.classList.add('selected');
+              // Store letter in data attribute for verification
+              div.dataset.letter = tile.letter;
               renderTileWithThreeJS(div, tile.letter, isHigh, isSelected, r, c);
               cell.appendChild(div);
               tileElements.set(`${r}-${c}`, div);
@@ -1280,6 +1299,13 @@
       }
       
       lastSelectionTime = now;
+      // Verify letter matches what's in grid
+      const currentTile = grid[row][col];
+      if (!currentTile || currentTile.letter !== tile.letter) {
+        console.error(`Letter mismatch during selection at [${row},${col}]: expected "${tile.letter}", grid has "${currentTile?.letter || 'null'}"`);
+        if (!currentTile) return; // Tile was removed
+        tile.letter = currentTile.letter; // Use current letter
+      }
       selection.push({ row, col, letter: tile.letter });
       updateFloatingWord();
       renderGrid(false); // Use incremental update
@@ -1376,6 +1402,11 @@
     function removeTiles() {
       selection.forEach(sel => {
         const tileId = `${sel.row}-${sel.col}`;
+        // Verify the tile exists and letter matches before removing
+        const gridTile = grid[sel.row] && grid[sel.row][sel.col];
+        if (gridTile && gridTile.letter !== sel.letter) {
+          console.warn(`Letter mismatch when removing tile at [${sel.row},${sel.col}]: selection has "${sel.letter}", grid has "${gridTile.letter}"`);
+        }
         // Clean up canvas and references when tile is removed
         const tileEl = tileElements.get(tileId);
         if (tileEl) {
@@ -1614,9 +1645,12 @@
         if (!grid[row][col]) return;
         dragging = true;
         pointerId = e.pointerId;
-        selection = [{ row, col, letter: grid[row][col].letter }];
+        const tile = grid[row][col];
+        if (!tile) return;
+        // Verify letter is correct
+        selection = [{ row, col, letter: tile.letter }];
         updateFloatingWord();
-        renderGrid();
+        renderGrid(false); // Use incremental update
         showFloatingWord(e.clientX, e.clientY - 20);
       });
 
