@@ -1367,7 +1367,12 @@
     }
 
     function selectionWord() {
-      return selection.map(s => s.letter).join('');
+      const word = selection.map(s => s.letter).join('');
+      // Debug: log selection details
+      if (selection.length > 0) {
+        console.log('Selection:', selection.map(s => `[${s.row},${s.col}]=${s.letter}`).join(' -> '), 'Word:', word);
+      }
+      return word;
     }
 
     function wordScore(word) {
