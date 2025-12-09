@@ -429,7 +429,6 @@
       <div class="controls">
         <button id="pauseBtn">Pause</button>
         <button id="resetBtn">Restart</button>
-        <button id="signOutBtn" style="display: none;">Sign Out</button>
       </div>
     </header>
 
@@ -447,35 +446,41 @@
   <div class="overlay" id="registerModal" style="display:none;">
     <div class="modal">
       <h2>Welcome to LexiStack!</h2>
-      <p style="color: #cbd5e1; margin-bottom: 16px;">Create an account to start playing. No email required!</p>
+      <p style="color: #cbd5e1; margin-bottom: 16px;">Create an account to start playing. Username and password are auto-generated - you can change them if you want!</p>
       <form id="registerForm" style="margin-bottom: 12px;" autocomplete="on">
-        <input 
-          type="text" 
-          id="registerUsernameInput" 
-          name="username"
-          placeholder="Choose a username" 
-          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
-          maxlength="20"
-          autocomplete="username"
-          spellcheck="false"
-          autocorrect="off"
-          autocapitalize="off"
-          inputmode="text"
-          required
-        >
-        <input 
-          type="password" 
-          id="registerPasswordInput" 
-          name="new-password"
-          placeholder="Create a password (min 6 characters)" 
-          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
-          autocomplete="new-password"
-          spellcheck="false"
-          autocorrect="off"
-          autocapitalize="off"
-          required
-          minlength="6"
-        >
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input 
+            type="text" 
+            id="registerUsernameInput" 
+            name="username"
+            placeholder="Choose a username" 
+            style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+            maxlength="20"
+            autocomplete="username"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+            inputmode="text"
+            required
+          >
+          <button type="button" id="regenerateUsernameBtn" style="padding: 12px 16px; background: rgba(148,163,184,0.2); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #cbd5e1; cursor: pointer; font-size: 0.85rem; white-space: nowrap;" title="Generate new username">🔄</button>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input 
+            type="password" 
+            id="registerPasswordInput" 
+            name="new-password"
+            placeholder="Create a password (min 6 characters)" 
+            style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+            autocomplete="new-password"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+            required
+            minlength="6"
+          >
+          <button type="button" id="regeneratePasswordBtn" style="padding: 12px 16px; background: rgba(148,163,184,0.2); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #cbd5e1; cursor: pointer; font-size: 0.85rem; white-space: nowrap;" title="Generate new password">🔄</button>
+        </div>
         <input 
           type="password" 
           id="registerConfirmPasswordInput" 
@@ -499,8 +504,19 @@
 
   <div class="overlay" id="settingsModal" style="display:none;">
     <div class="modal">
-      <h2>Account Settings</h2>
+      <h2>Account Management</h2>
       <form id="settingsForm" style="margin-bottom: 12px;">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Username</label>
+          <input 
+            type="text" 
+            id="settingsUsernameDisplay" 
+            readonly
+            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(148,163,184,0.2); border-radius: 8px; color: #94a3b8; font-size: 1rem; box-sizing: border-box; cursor: not-allowed;"
+          >
+          <div style="margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">Username cannot be changed</div>
+        </div>
+        
         <div style="margin-bottom: 16px;">
           <label for="settingsDisplayName" style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Display Name</label>
           <input 
@@ -516,6 +532,16 @@
             autocapitalize="off"
           >
           <div style="margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">This is how your name appears to others</div>
+        </div>
+        
+        <div style="margin-bottom: 16px; padding: 12px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Global Leaderboard Rank</span>
+            <span id="userRank" style="font-size: 1.1rem; color: #60a5fa; font-weight: 700;">-</span>
+          </div>
+          <div style="margin-top: 8px;">
+            <button type="button" id="viewLeaderboardBtn" style="width: 100%; padding: 8px; background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); border-radius: 6px; color: #93c5fd; cursor: pointer; font-size: 0.85rem;">View Full Leaderboard</button>
+          </div>
         </div>
         
         <div style="margin-bottom: 16px; padding-top: 16px; border-top: 1px solid rgba(148,163,184,0.2);">
@@ -561,9 +587,8 @@
         <div id="settingsStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
       </form>
       <div class="modal-actions" style="display: flex; gap: 8px;">
-        <button id="settingsSignOutBtn" class="danger" style="flex: 1;">Sign Out</button>
         <button type="submit" form="settingsForm" class="primary" id="settingsSaveBtn" style="flex: 1;">Save Changes</button>
-        <button id="settingsCancelBtn" style="flex: 1;">Cancel</button>
+        <button id="settingsCancelBtn" style="flex: 1;">Close</button>
       </div>
     </div>
   </div>
@@ -676,7 +701,6 @@
     const startBtn = document.getElementById('startGame');
     const pauseBtn = document.getElementById('pauseBtn');
     const resetBtn = document.getElementById('resetBtn');
-    const signOutBtn = document.getElementById('signOutBtn');
     const gameOver = document.getElementById('gameOver');
     const finalScore = document.getElementById('finalScore');
     const finalCombo = document.getElementById('finalCombo');
@@ -702,6 +726,92 @@
     const settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
     const settingsStatus = document.getElementById('settingsStatus');
     const settingsForm = document.getElementById('settingsForm');
+    const settingsUsernameDisplay = document.getElementById('settingsUsernameDisplay');
+    const userRank = document.getElementById('userRank');
+    const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
+    const regenerateUsernameBtn = document.getElementById('regenerateUsernameBtn');
+    const regeneratePasswordBtn = document.getElementById('regeneratePasswordBtn');
+    
+    // Simple inline generators (since we can't import modules in static HTML)
+    const adjectives = ['happy', 'swift', 'brave', 'clever', 'bright', 'calm', 'bold', 'quick', 'wise', 'cool', 'fast', 'sharp', 'smart', 'wild', 'calm', 'proud', 'kind', 'bold', 'calm', 'neat'];
+    const colors = ['red', 'blue', 'green', 'gold', 'silver', 'purple', 'pink', 'cyan', 'amber', 'teal', 'lime', 'rose', 'violet', 'indigo', 'orange', 'yellow', 'emerald', 'sky', 'fuchsia', 'mint'];
+    const animals = ['cat', 'dog', 'fox', 'bear', 'wolf', 'lion', 'tiger', 'eagle', 'hawk', 'owl', 'deer', 'bird', 'fish', 'shark', 'whale', 'dolphin', 'panda', 'koala', 'penguin', 'rabbit'];
+    
+    function generateUsername() {
+      const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const animal = animals[Math.floor(Math.random() * animals.length)];
+      const num = Math.floor(Math.random() * 1000);
+      const username = `${adj}${color}${animal}${num}`.substring(0, 20);
+      return username.replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    function generatePassword() {
+      const length = 16;
+      const charset = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*';
+      let password = '';
+      const hasLower = 'abcdefghjkmnpqrstuvwxyz';
+      const hasUpper = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+      const hasNumber = '23456789';
+      const hasSymbol = '!@#$%^&*';
+      
+      // Ensure at least one of each type
+      password += hasLower[Math.floor(Math.random() * hasLower.length)];
+      password += hasUpper[Math.floor(Math.random() * hasUpper.length)];
+      password += hasNumber[Math.floor(Math.random() * hasNumber.length)];
+      password += hasSymbol[Math.floor(Math.random() * hasSymbol.length)];
+      
+      // Fill the rest
+      for (let i = password.length; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+      }
+      
+      // Shuffle
+      return password.split('').sort(() => Math.random() - 0.5).join('');
+    }
+    const settingsUsernameDisplay = document.getElementById('settingsUsernameDisplay');
+    const userRank = document.getElementById('userRank');
+    const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
+    const regenerateUsernameBtn = document.getElementById('regenerateUsernameBtn');
+    const regeneratePasswordBtn = document.getElementById('regeneratePasswordBtn');
+    
+    // Simple inline generators (since we can't import modules in static HTML)
+    const adjectives = ['happy', 'swift', 'brave', 'clever', 'bright', 'calm', 'bold', 'quick', 'wise', 'cool', 'fast', 'sharp', 'smart', 'wild', 'calm', 'proud', 'kind', 'bold', 'calm', 'neat'];
+    const colors = ['red', 'blue', 'green', 'gold', 'silver', 'purple', 'pink', 'cyan', 'amber', 'teal', 'lime', 'rose', 'violet', 'indigo', 'orange', 'yellow', 'emerald', 'sky', 'fuchsia', 'mint'];
+    const animals = ['cat', 'dog', 'fox', 'bear', 'wolf', 'lion', 'tiger', 'eagle', 'hawk', 'owl', 'deer', 'bird', 'fish', 'shark', 'whale', 'dolphin', 'panda', 'koala', 'penguin', 'rabbit'];
+    
+    function generateUsername() {
+      const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const animal = animals[Math.floor(Math.random() * animals.length)];
+      const num = Math.floor(Math.random() * 1000);
+      const username = `${adj}${color}${animal}${num}`.substring(0, 20);
+      return username.replace(/[^a-zA-Z0-9_]/g, '');
+    }
+    
+    function generatePassword() {
+      const length = 16;
+      const charset = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*';
+      let password = '';
+      const hasLower = 'abcdefghjkmnpqrstuvwxyz';
+      const hasUpper = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+      const hasNumber = '23456789';
+      const hasSymbol = '!@#$%^&*';
+      
+      // Ensure at least one of each type
+      password += hasLower[Math.floor(Math.random() * hasLower.length)];
+      password += hasUpper[Math.floor(Math.random() * hasUpper.length)];
+      password += hasNumber[Math.floor(Math.random() * hasNumber.length)];
+      password += hasSymbol[Math.floor(Math.random() * hasSymbol.length)];
+      
+      // Fill the rest
+      for (let i = password.length; i < length; i++) {
+        password += charset[Math.floor(Math.random() * charset.length)];
+      }
+      
+      // Shuffle
+      return password.split('').sort(() => Math.random() - 0.5).join('');
+    }
 
     let dictionary = new Set(fallbackWords);
     let grid = [];
@@ -891,15 +1001,32 @@
       }
     }
     
-    async function getLeaderboard(limit = 10) {
+    async function getLeaderboard(limit = 10, offset = 0) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/scores?limit=${limit}`);
+        const response = await fetch(`${API_BASE_URL}/api/scores?limit=${limit}&offset=${offset}`);
         const data = await response.json();
         return data.scores || [];
       } catch (error) {
         console.error('Error fetching leaderboard:', error);
         return [];
       }
+    }
+    
+    async function getAllScores() {
+      // Fetch all scores in batches
+      const allScores = [];
+      let offset = 0;
+      const batchSize = 100;
+      
+      while (true) {
+        const batch = await getLeaderboard(batchSize, offset);
+        if (batch.length === 0) break;
+        allScores.push(...batch);
+        if (batch.length < batchSize) break;
+        offset += batchSize;
+      }
+      
+      return allScores;
     }
     
     async function trackWord(word) {
@@ -1431,11 +1558,6 @@
         clearAndReset();
       });
 
-      signOutBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to sign out? Your current game progress will be lost.')) {
-          signOut();
-        }
-      });
 
       // Registration handlers
       const registerForm = document.getElementById('registerForm');
@@ -1702,11 +1824,21 @@
         closeSettingsModal();
       });
       
-      settingsSignOutBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to sign out?')) {
-          closeSettingsModal();
-          signOut();
-        }
+      regenerateUsernameBtn.addEventListener('click', () => {
+        registerUsernameInput.value = generateUsername();
+        registerStatus.textContent = '';
+      });
+      
+      regeneratePasswordBtn.addEventListener('click', () => {
+        const newPassword = generatePassword();
+        registerPasswordInput.value = newPassword;
+        registerConfirmPasswordInput.value = newPassword;
+        registerStatus.textContent = '';
+      });
+      
+      viewLeaderboardBtn.addEventListener('click', () => {
+        closeSettingsModal();
+        leaderboardBtn.click();
       });
       
       settingsForm.addEventListener('submit', async (e) => {
@@ -1794,27 +1926,77 @@
       }
     }
 
+    async function getUserRank(userId) {
+      try {
+        // Get all scores sorted by score descending
+        const allScores = await getAllScores();
+        
+        if (allScores.length === 0) {
+          return null; // No scores in leaderboard
+        }
+        
+        // Find user's best score
+        const userScores = allScores.filter(s => s.user_id === userId);
+        if (userScores.length === 0) {
+          return null; // User has no scores
+        }
+        
+        const userBestScore = Math.max(...userScores.map(s => s.score));
+        
+        // Count how many unique users have a better score
+        const uniqueUserScores = new Map();
+        for (const score of allScores) {
+          const currentBest = uniqueUserScores.get(score.user_id) || 0;
+          if (score.score > currentBest) {
+            uniqueUserScores.set(score.user_id, score.score);
+          }
+        }
+        
+        // Count users with better scores
+        let rank = 1;
+        for (const [uid, bestScore] of uniqueUserScores.entries()) {
+          if (uid !== userId && bestScore > userBestScore) {
+            rank++;
+          }
+        }
+        
+        return rank;
+      } catch (error) {
+        console.error('Error getting user rank:', error);
+        return null;
+      }
+    }
+    
     function updateUserBadge() {
       if (currentUser) {
         const displayName = currentUser.displayname || currentUser.username;
         userBadge.textContent = displayName;
         userBadge.style.display = 'inline';
-        signOutBtn.style.display = 'inline-block';
       } else {
         userBadge.style.display = 'none';
-        signOutBtn.style.display = 'none';
       }
     }
     
-    function openSettingsModal() {
+    async function openSettingsModal() {
       if (!currentUser) return;
       
       const displayName = currentUser.displayname || currentUser.username;
       settingsDisplayName.value = displayName;
+      settingsUsernameDisplay.value = currentUser.username;
       settingsCurrentPassword.value = '';
       settingsNewPassword.value = '';
       settingsConfirmPassword.value = '';
       settingsStatus.textContent = '';
+      
+      // Get and display user rank
+      userRank.textContent = 'Loading...';
+      const rank = await getUserRank(currentUser.id);
+      if (rank !== null) {
+        userRank.textContent = `#${rank}`;
+      } else {
+        userRank.textContent = 'No rank yet';
+      }
+      
       settingsModal.style.display = 'flex';
       settingsDisplayName.focus();
     }
@@ -1829,36 +2011,15 @@
     }
     
     function prefillRegistrationForm() {
-      // Clear form fields - let browser autofill handle it
-      registerUsernameInput.value = '';
-      registerPasswordInput.value = '';
-      registerConfirmPasswordInput.value = '';
+      // Auto-generate username and password
+      const username = generateUsername();
+      const password = generatePassword();
+      registerUsernameInput.value = username;
+      registerPasswordInput.value = password;
+      registerConfirmPasswordInput.value = password;
       registerStatus.textContent = '';
     }
     
-    function signOut() {
-      // Clear user data
-      currentUser = null;
-      localStorage.removeItem('lexistack_user');
-      
-      // Reset game state
-      running = false;
-      paused = false;
-      
-      // Hide game over and tutorial
-      gameOver.style.display = 'none';
-      tutorial.style.display = 'none';
-      
-      // Update UI
-      updateUserBadge();
-      
-      // Show registration modal
-      registerModal.style.display = 'flex';
-      prefillRegistrationForm();
-      registerUsernameInput.focus();
-      
-      addToast('Signed out successfully', 'success');
-    }
 
     async function init() {
       attachEvents();
