@@ -240,11 +240,11 @@
         background: linear-gradient(160deg,#1e293b,#0f172a);
       }
       10%, 30%, 50%, 70%, 90% {
-        transform: translateX(-4px);
+        transform: translateX(-2px);
         background: linear-gradient(160deg,#991b1b,#7f1d1d);
       }
       20%, 40%, 60%, 80% {
-        transform: translateX(4px);
+        transform: translateX(2px);
         background: linear-gradient(160deg,#991b1b,#7f1d1d);
       }
     }
@@ -284,8 +284,8 @@
     }
     @keyframes shake-floating {
       0%, 100% { transform: translate(-50%, -150%) translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translate(-50%, -150%) translateX(-6px); }
-      20%, 40%, 60%, 80% { transform: translate(-50%, -150%) translateX(6px); }
+      10%, 30%, 50%, 70%, 90% { transform: translate(-50%, -150%) translateX(-3px); }
+      20%, 40%, 60%, 80% { transform: translate(-50%, -150%) translateX(3px); }
     }
 
     .combo { color: var(--emerald); }
@@ -402,7 +402,7 @@
     <header>
       <div class="brand">
         LexiStack <span class="badge">v2</span>
-        <span id="userBadge" style="display: none; margin-left: 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 500;"></span>
+        <span id="userBadge" style="display: none; margin-left: 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 500; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(148,163,184,0.5);" title="Click to edit profile"></span>
       </div>
       <div class="header-stats" id="headerStats">
         <div class="stat-item">
@@ -497,6 +497,77 @@
     </div>
   </div>
 
+  <div class="overlay" id="settingsModal" style="display:none;">
+    <div class="modal">
+      <h2>Account Settings</h2>
+      <form id="settingsForm" style="margin-bottom: 12px;">
+        <div style="margin-bottom: 16px;">
+          <label for="settingsDisplayName" style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Display Name</label>
+          <input 
+            type="text" 
+            id="settingsDisplayName" 
+            name="displayname"
+            placeholder="Display name" 
+            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+            maxlength="30"
+            autocomplete="name"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+          >
+          <div style="margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">This is how your name appears to others</div>
+        </div>
+        
+        <div style="margin-bottom: 16px; padding-top: 16px; border-top: 1px solid rgba(148,163,184,0.2);">
+          <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Change Password</label>
+          <input 
+            type="password" 
+            id="settingsCurrentPassword" 
+            name="current-password"
+            placeholder="Current password" 
+            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
+            autocomplete="current-password"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+          >
+          <input 
+            type="password" 
+            id="settingsNewPassword" 
+            name="new-password"
+            placeholder="New password (min 6 characters)" 
+            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
+            autocomplete="new-password"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+            minlength="6"
+          >
+          <input 
+            type="password" 
+            id="settingsConfirmPassword" 
+            name="confirm-password"
+            placeholder="Confirm new password" 
+            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+            autocomplete="new-password"
+            spellcheck="false"
+            autocorrect="off"
+            autocapitalize="off"
+            minlength="6"
+          >
+          <div style="margin-top: 4px; font-size: 0.75rem; color: #94a3b8;">Leave blank to keep current password</div>
+        </div>
+        
+        <div id="settingsStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
+      </form>
+      <div class="modal-actions" style="display: flex; gap: 8px;">
+        <button id="settingsSignOutBtn" class="danger" style="flex: 1;">Sign Out</button>
+        <button type="submit" form="settingsForm" class="primary" id="settingsSaveBtn" style="flex: 1;">Save Changes</button>
+        <button id="settingsCancelBtn" style="flex: 1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" id="tutorial" style="display:none;">
     <div class="modal">
       <h2>How to Play</h2>
@@ -547,9 +618,6 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
   <script>
     const rows = 10;
     const cols = 7;
@@ -624,6 +692,16 @@
     const leaderboardModal = document.getElementById('leaderboardModal');
     const leaderboardList = document.getElementById('leaderboardList');
     const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const settingsDisplayName = document.getElementById('settingsDisplayName');
+    const settingsCurrentPassword = document.getElementById('settingsCurrentPassword');
+    const settingsNewPassword = document.getElementById('settingsNewPassword');
+    const settingsConfirmPassword = document.getElementById('settingsConfirmPassword');
+    const settingsSaveBtn = document.getElementById('settingsSaveBtn');
+    const settingsCancelBtn = document.getElementById('settingsCancelBtn');
+    const settingsSignOutBtn = document.getElementById('settingsSignOutBtn');
+    const settingsStatus = document.getElementById('settingsStatus');
+    const settingsForm = document.getElementById('settingsForm');
 
     let dictionary = new Set(fallbackWords);
     let grid = [];
@@ -835,6 +913,28 @@
         // Silently fail - word tracking is optional
       }
     }
+    
+    async function updateUser(userId, updates) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, ...updates }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to update user');
+        }
+        const data = await response.json();
+        if (data.user) {
+          saveUserToStorage(data.user);
+        }
+        return data.user;
+      } catch (error) {
+        console.error('Error updating user:', error);
+        throw error;
+      }
+    }
 
     const letterPool = (() => {
       const pool = [];
@@ -859,13 +959,13 @@
 
     function createThreeJSText(letter, isHigh, isSelected) {
       const canvas = document.createElement('canvas');
-      const size = 512; // Higher resolution for better quality
+      const pixelRatio = Math.max(window.devicePixelRatio || 1, 2);
+      const size = 1024 * pixelRatio; // Higher resolution for better quality
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
       
       // Enable text rendering hints for better quality
-      ctx.textRenderingOptimization = 'optimizeQuality';
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
@@ -877,7 +977,7 @@
       ctx.shadowBlur = 4;
       
       // Use a refined font with better proportions - taller and more elegant
-      const fontSize = size * 0.75;
+      const fontSize = size * 0.75; // Already accounts for pixelRatio since size includes it
       ctx.font = `600 ${fontSize}px 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
@@ -1191,7 +1291,8 @@
       // User should always exist at this point (registered at start)
       if (currentUser) {
         userSection.style.display = 'none';
-        userStatus.textContent = `Playing as: ${currentUser.username}`;
+        const displayName = currentUser.displayname || currentUser.username;
+        userStatus.textContent = `Playing as: ${displayName}`;
         leaderboardBtn.style.display = 'inline-block';
         // Auto-submit score
         submitScore(currentUser.id, {
@@ -1531,7 +1632,8 @@
              currentUser = user;
              updateUserBadge();
              userSection.style.display = 'none';
-             userStatus.textContent = `Playing as: ${user.username}`;
+             const displayName = user.displayname || user.username;
+            userStatus.textContent = `Playing as: ${displayName}`;
              leaderboardBtn.style.display = 'inline-block';
              // Submit score
              const success = await submitScore(user.id, {
@@ -1588,17 +1690,142 @@
       closeLeaderboardBtn.addEventListener('click', () => {
         leaderboardModal.style.display = 'none';
       });
+      
+      // Settings modal handlers
+      userBadge.addEventListener('click', () => {
+        if (currentUser) {
+          openSettingsModal();
+        }
+      });
+      
+      settingsCancelBtn.addEventListener('click', () => {
+        closeSettingsModal();
+      });
+      
+      settingsSignOutBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to sign out?')) {
+          closeSettingsModal();
+          signOut();
+        }
+      });
+      
+      settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveSettings();
+      });
+      
+      settingsSaveBtn.addEventListener('click', async () => {
+        await saveSettings();
+      });
+    }
+    
+    async function saveSettings() {
+      if (!currentUser) return;
+      
+      const displayname = settingsDisplayName.value.trim();
+      const newPassword = settingsNewPassword.value;
+      const confirmPassword = settingsConfirmPassword.value;
+      const currentPassword = settingsCurrentPassword.value;
+      
+      // Validate displayname
+      if (!displayname) {
+        settingsStatus.textContent = 'Display name cannot be empty';
+        settingsStatus.style.color = '#ef4444';
+        return;
+      }
+      if (displayname.length > 30) {
+        settingsStatus.textContent = 'Display name must be 30 characters or less';
+        settingsStatus.style.color = '#ef4444';
+        return;
+      }
+      
+      // Validate password if provided
+      if (newPassword) {
+        if (newPassword.length < 6) {
+          settingsStatus.textContent = 'New password must be at least 6 characters';
+          settingsStatus.style.color = '#ef4444';
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          settingsStatus.textContent = 'New passwords do not match';
+          settingsStatus.style.color = '#ef4444';
+          return;
+        }
+        if (!currentPassword) {
+          settingsStatus.textContent = 'Current password required to change password';
+          settingsStatus.style.color = '#ef4444';
+          return;
+        }
+      }
+      
+      settingsSaveBtn.disabled = true;
+      settingsSaveBtn.textContent = 'Saving...';
+      settingsStatus.textContent = '';
+      
+      try {
+        const updates = { displayname };
+        if (newPassword) {
+          updates.password = newPassword;
+          updates.currentPassword = currentPassword;
+        }
+        
+        const updatedUser = await updateUser(currentUser.id, updates);
+        if (updatedUser) {
+          currentUser = updatedUser;
+          updateUserBadge();
+          settingsStatus.textContent = 'Settings saved successfully!';
+          settingsStatus.style.color = '#22c55e';
+          
+          // Clear password fields
+          settingsCurrentPassword.value = '';
+          settingsNewPassword.value = '';
+          settingsConfirmPassword.value = '';
+          
+          setTimeout(() => {
+            closeSettingsModal();
+          }, 1500);
+        }
+      } catch (error) {
+        settingsStatus.textContent = error.message || 'Failed to save settings. Please try again.';
+        settingsStatus.style.color = '#ef4444';
+      } finally {
+        settingsSaveBtn.disabled = false;
+        settingsSaveBtn.textContent = 'Save Changes';
+      }
     }
 
     function updateUserBadge() {
       if (currentUser) {
-        userBadge.textContent = `@${currentUser.username}`;
+        const displayName = currentUser.displayname || currentUser.username;
+        userBadge.textContent = displayName;
         userBadge.style.display = 'inline';
         signOutBtn.style.display = 'inline-block';
       } else {
         userBadge.style.display = 'none';
         signOutBtn.style.display = 'none';
       }
+    }
+    
+    function openSettingsModal() {
+      if (!currentUser) return;
+      
+      const displayName = currentUser.displayname || currentUser.username;
+      settingsDisplayName.value = displayName;
+      settingsCurrentPassword.value = '';
+      settingsNewPassword.value = '';
+      settingsConfirmPassword.value = '';
+      settingsStatus.textContent = '';
+      settingsModal.style.display = 'flex';
+      settingsDisplayName.focus();
+    }
+    
+    function closeSettingsModal() {
+      settingsModal.style.display = 'none';
+      settingsDisplayName.value = '';
+      settingsCurrentPassword.value = '';
+      settingsNewPassword.value = '';
+      settingsConfirmPassword.value = '';
+      settingsStatus.textContent = '';
     }
     
     function signOut() {
@@ -1619,10 +1846,7 @@
       
       // Show registration modal
       registerModal.style.display = 'flex';
-      registerUsernameInput.value = '';
-      registerPasswordInput.value = '';
-      registerConfirmPasswordInput.value = '';
-      registerStatus.textContent = '';
+      prefillRegistrationForm();
       registerUsernameInput.focus();
       
       addToast('Signed out successfully', 'success');
@@ -1646,10 +1870,7 @@
       } else {
         // No user, show registration first
         registerModal.style.display = 'flex';
-        registerUsernameInput.value = '';
-        registerPasswordInput.value = '';
-        registerConfirmPasswordInput.value = '';
-        registerStatus.textContent = '';
+        prefillRegistrationForm();
         registerUsernameInput.focus();
       }
     }

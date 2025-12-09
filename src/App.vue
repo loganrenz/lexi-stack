@@ -178,16 +178,28 @@ function createThreeJSText(letter, isHigh, isSelected, container) {
   renderer.domElement.style.pointerEvents = 'none'
   
   const textCanvas = document.createElement('canvas')
-  textCanvas.width = 512
-  textCanvas.height = 512
+  const pixelRatio = Math.max(window.devicePixelRatio || 1, 2)
+  const canvasSize = 1024 * pixelRatio
+  textCanvas.width = canvasSize
+  textCanvas.height = canvasSize
   const ctx = textCanvas.getContext('2d')
+  
+  // Enable high-quality text rendering
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.textRenderingOptimization = 'optimizeQuality'
+  
   ctx.fillStyle = isHigh ? '#fb923c' : '#e2e8f0'
-  ctx.font = `bold 360px 'Inter', system-ui, sans-serif`
+  const fontSize = 720 * pixelRatio
+  ctx.font = `bold ${fontSize}px 'Inter', system-ui, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(letter, 256, 256)
+  ctx.fillText(letter, canvasSize / 2, canvasSize / 2)
   
   const texture = new THREE.CanvasTexture(textCanvas)
+  texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
+  texture.generateMipmaps = false
   texture.needsUpdate = true
   
   const geometry = new THREE.PlaneGeometry(width * 0.8, height * 0.8)
@@ -394,7 +406,7 @@ function flashSelection() {
     // Clear selection and re-render grid
     isAnimatingInvalid = false
     clearSelection()
-  }, 600)
+  }, 300)
 }
 
 function removeTiles() {

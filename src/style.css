@@ -224,7 +224,7 @@ button:active {
 }
 
 .tile.invalid { 
-  animation: shakeAndGlow 0.6s ease; 
+  animation: shakeAndGlow 0.3s ease; 
   border-color: #ef4444 !important;
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 
               0 0 40px rgba(239, 68, 68, 0.5),
@@ -233,7 +233,7 @@ button:active {
 }
 
 .tile.selected.invalid {
-  animation: shakeAndGlowSelected 0.6s ease;
+  animation: shakeAndGlowSelected 0.3s ease;
   border-color: #ef4444 !important;
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 
               0 0 40px rgba(239, 68, 68, 0.5),
@@ -247,13 +247,13 @@ button:active {
     background: linear-gradient(160deg, #1e293b, #0f172a);
   }
   10%, 30%, 50%, 70%, 90% {
-    transform: translateZ(0) translateX(-4px) translateY(0);
+    transform: translateZ(0) translateX(-2px) translateY(0);
   }
   20%, 40%, 60%, 80% {
-    transform: translateZ(0) translateX(4px) translateY(0);
+    transform: translateZ(0) translateX(2px) translateY(0);
   }
   25%, 75% {
-    transform: translateZ(0) translateX(0) translateY(-2px);
+    transform: translateZ(0) translateX(0) translateY(-1px);
   }
   50% {
     background: linear-gradient(160deg, #991b1b, #7f1d1d);
@@ -266,13 +266,13 @@ button:active {
     background: linear-gradient(160deg, #1e293b, #0f172a);
   }
   10%, 30%, 50%, 70%, 90% {
-    transform: translateZ(0) translateY(-3px) scale(1.05) translateX(-4px);
+    transform: translateZ(0) translateY(-3px) scale(1.05) translateX(-2px);
   }
   20%, 40%, 60%, 80% {
-    transform: translateZ(0) translateY(-3px) scale(1.05) translateX(4px);
+    transform: translateZ(0) translateY(-3px) scale(1.05) translateX(2px);
   }
   25%, 75% {
-    transform: translateZ(0) translateY(-5px) scale(1.05) translateX(0);
+    transform: translateZ(0) translateY(-4px) scale(1.05) translateX(0);
   }
   50% {
     background: linear-gradient(160deg, #991b1b, #7f1d1d);

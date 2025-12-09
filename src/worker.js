@@ -33,6 +33,9 @@ export default {
       if (path === '/api/user/check' && method === 'GET') {
         return handleCheckUsername(request, env.DB, corsHeaders);
       }
+      if (path === '/api/user' && method === 'PATCH') {
+        return handleUpdateUser(request, env.DB, corsHeaders);
+      }
       if (path === '/api/words' && method === 'POST') {
         return handleTrackWord(request, env.DB, corsHeaders);
       }
@@ -107,7 +110,7 @@ async function handleCheckUsername(request, db, corsHeaders) {
     );
   }
 
-  const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+    const user = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE username = ?').bind(username).first();
   
   return new Response(
     JSON.stringify({ available: !user, exists: !!user, taken: !!user }),
@@ -130,9 +133,9 @@ async function handleGetUser(request, db, corsHeaders) {
 
   let user;
   if (username) {
-    user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+    user = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE username = ?').bind(username).first();
   } else {
-    user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+    user = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE id = ?').bind(userId).first();
   }
 
   if (!user) {
@@ -176,21 +179,21 @@ async function handleCreateUser(request, db, corsHeaders) {
         }
         // Update username
         await db.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, userId).run();
-        const updated = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+        const updated = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE id = ?').bind(userId).first();
         return new Response(
           JSON.stringify({ user: updated }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       return new Response(
-        JSON.stringify({ user: existing }),
+        JSON.stringify({ user: { id: existing.id, username: existing.username, displayname: existing.displayname || existing.username, created_at: existing.created_at } }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
   }
 
   // Check if username already exists (for new users)
-  const existingUser = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+  const existingUser = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE username = ?').bind(username).first();
   if (existingUser) {
     return new Response(
       JSON.stringify({ error: 'Username already taken', user: existingUser }),
@@ -201,12 +204,28 @@ async function handleCreateUser(request, db, corsHeaders) {
   // Create new user
   const id = userId || crypto.randomUUID();
   try {
-    await db.prepare(
-      `INSERT INTO users (id, username, created_at)
-       VALUES (?, ?, unixepoch())`
-    ).bind(id, username).run();
+    // Hash password if provided (using a simple hash for now - should use bcrypt in production)
+    let passwordHash = null;
+    if (password) {
+      // Simple hash - in production, use proper password hashing (bcrypt, argon2, etc.)
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
-    const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+    await db.prepare(
+      `INSERT INTO users (id, username, displayname, password_hash, created_at)
+       VALUES (?, ?, ?, ?, unixepoch())`
+    ).bind(id, username, username, passwordHash).run();
+
+    const user = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE id = ?').bind(id).first();
+    // Ensure displayname is set
+    if (!user.displayname) {
+      await db.prepare('UPDATE users SET displayname = ? WHERE id = ?').bind(username, id).run();
+      user.displayname = username;
+    }
     return new Response(
       JSON.stringify({ user }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -214,7 +233,7 @@ async function handleCreateUser(request, db, corsHeaders) {
   } catch (error) {
     // Fallback: Username might already exist (race condition)
     if (error.message.includes('UNIQUE')) {
-      const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+      const user = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE username = ?').bind(username).first();
       if (user) {
         return new Response(
           JSON.stringify({ error: 'Username already taken', user }),
@@ -224,6 +243,71 @@ async function handleCreateUser(request, db, corsHeaders) {
     }
     throw error;
   }
+}
+
+// Update user (displayname, password)
+async function handleUpdateUser(request, db, corsHeaders) {
+  const data = await request.json();
+  const { userId, displayname, password, currentPassword } = data;
+
+  if (!userId) {
+    return new Response(
+      JSON.stringify({ error: 'UserId required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'User not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // If updating password, verify current password
+  if (password) {
+    if (!currentPassword) {
+      return new Response(
+        JSON.stringify({ error: 'Current password required to change password' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify current password
+    const encoder = new TextEncoder();
+    const data = encoder.encode(currentPassword);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const currentPasswordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    if (user.password_hash && user.password_hash !== currentPasswordHash) {
+      return new Response(
+        JSON.stringify({ error: 'Current password is incorrect' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Hash new password
+    const newData = encoder.encode(password);
+    const newHashBuffer = await crypto.subtle.digest('SHA-256', newData);
+    const newHashArray = Array.from(new Uint8Array(newHashBuffer));
+    const newPasswordHash = newHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newPasswordHash, userId).run();
+  }
+
+  // Update displayname if provided
+  if (displayname !== undefined) {
+    await db.prepare('UPDATE users SET displayname = ? WHERE id = ?').bind(displayname || user.username, userId).run();
+  }
+
+  // Return updated user (without password_hash)
+  const updated = await db.prepare('SELECT id, username, displayname, created_at FROM users WHERE id = ?').bind(userId).first();
+  return new Response(
+    JSON.stringify({ user: updated }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 
 // Track word usage
