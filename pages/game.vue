@@ -175,7 +175,7 @@ definePageMeta({
   ssr: false
 })
 
-import { onMounted, onBeforeUnmount, ref, computed, nextTick, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, nextTick, watch } from 'vue'
 import { useGameState } from '~/composables/useGameState'
 import { useDictionary } from '~/composables/useDictionary'
 import { useThreeTowerScene } from '~/composables/useThreeTowerScene'
@@ -247,8 +247,8 @@ const gameLoop = (currentTime: number) => {
     updateScene()
   }
 
-    gameLoopId = requestAnimationFrame(gameLoop)
-  }
+  gameLoopId = requestAnimationFrame(gameLoop)
+}
 
 // Update Three.js scene from grid state
 const updateScene = () => {
