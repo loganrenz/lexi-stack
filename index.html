@@ -1828,6 +1828,14 @@
       settingsStatus.textContent = '';
     }
     
+    function prefillRegistrationForm() {
+      // Clear form fields - let browser autofill handle it
+      registerUsernameInput.value = '';
+      registerPasswordInput.value = '';
+      registerConfirmPasswordInput.value = '';
+      registerStatus.textContent = '';
+    }
+    
     function signOut() {
       // Clear user data
       currentUser = null;
