@@ -2179,6 +2179,13 @@
         localStorage.setItem('lexistack_tutorial_seen', '1');
         clearAndReset();
       });
+      
+      // Start button click handler
+      if (startButton) {
+        startButton.addEventListener('click', () => {
+          showCountdown();
+        });
+      }
 
       againBtn.addEventListener('click', () => {
         clearAndReset();
