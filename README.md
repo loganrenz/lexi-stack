@@ -41,7 +41,42 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Lint code
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
+
+# Type check
+npm run typecheck
 ```
+
+## Testing the Game
+
+1. **Start the dev server**: `npm run dev`
+2. **Navigate to** `http://localhost:3000`
+3. **Landing Page**: You should see:
+   - Hero section with "Play Now" button
+   - Feature cards
+   - How to Play instructions
+   - High Scores button
+4. **Click "Play Now"** to start the game
+5. **Game Screen**: 
+   - Tap/click adjacent letters to build words
+   - Submit valid words to clear tiles
+   - Watch the timer and danger line
+   - Build combos for higher scores
+6. **Game Over**: 
+   - View final score and stats
+   - Option to play again or return home
+   - High scores are saved automatically
+
+## Known Limitations
+
+- Dictionary loads on first use (may take a moment)
+- Mobile touch interactions work best with single taps (drag selection not yet implemented)
+- Sound effects are stubbed (ready for future implementation)
 
 ## Deployment
 
