@@ -41,7 +41,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 12px;
       flex-wrap: wrap;
     }
     .brand {
@@ -61,6 +61,33 @@
       border-radius: 999px;
       font-size: 0.75rem;
       font-weight: 700;
+    }
+    .header-stats {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      flex: 1;
+      justify-content: center;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #e2e8f0;
+      letter-spacing: 0.02em;
     }
     .controls {
       display: flex;
@@ -218,20 +245,6 @@
     .floating-word .word { font-weight: 900; letter-spacing: 0.08em; }
     .floating-word .points { font-size: 0.85rem; color: #a5f3fc; }
 
-    .stats {
-      position: absolute;
-      right: 12px;
-      top: 12px;
-      background: var(--panel);
-      border: 1px solid rgba(148,163,184,0.25);
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      min-width: 150px;
-    }
-    .stats-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .stats h3 { margin: 8px 0 4px; font-size: 0.95rem; color: #cbd5e1; }
-    .stat-line { display: flex; justify-content: space-between; font-weight: 700; color: #e2e8f0; font-size: 0.9rem; }
     .combo { color: var(--emerald); }
     .time-positive { color: var(--cyan); }
     .time-low { color: var(--danger); }
@@ -296,7 +309,24 @@
 
     @media (min-width: 900px) {
       .board { max-height: 70vh; }
-      .stats { right: 18px; top: 18px; }
+    }
+    @media (max-width: 768px) {
+      .header-stats {
+        order: 3;
+        width: 100%;
+        justify-content: space-around;
+        margin-top: 8px;
+      }
+      header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .brand {
+        justify-content: center;
+      }
+      .controls {
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -304,6 +334,20 @@
   <div class="app">
     <header>
       <div class="brand">LexiStack <span class="badge">v2</span></div>
+      <div class="header-stats" id="headerStats">
+        <div class="stat-item">
+          <span class="stat-label">Score</span>
+          <span class="stat-value" id="headerScore">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Combo</span>
+          <span class="stat-value combo" id="headerCombo">x1.0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Level</span>
+          <span class="stat-value level" id="headerLevel">1</span>
+        </div>
+      </div>
       <div class="controls">
         <button id="pauseBtn">Pause</button>
         <button id="resetBtn">Restart</button>
@@ -318,15 +362,6 @@
       <div class="board" id="board">
         <svg class="path-layer" id="pathLayer"></svg>
         <div class="grid" id="grid"></div>
-        <div class="stats" id="statsPanel">
-          <div class="stats-toggle"><span>Stats</span><button id="toggleStats">▲</button></div>
-          <div id="statsBody">
-            <h3>Score</h3><div class="stat-line"><span>Total</span><span id="score">0</span></div>
-            <h3>Combo</h3><div class="stat-line"><span>Current</span><span id="combo" class="combo">x1.0</span></div><div class="stat-line"><span>Best</span><span id="bestCombo" class="combo">x1.0</span></div>
-            <h3>Time</h3><div class="stat-line"><span>Remaining</span><span id="timeDisplay" class="time-positive">60.0s</span></div>
-            <h3>Level</h3><div class="stat-line"><span>Stage</span><span id="level" class="level">1</span></div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -383,13 +418,10 @@
     const timerFill = document.getElementById('timerFill');
     const timerLabel = document.getElementById('timerLabel');
     const rowTimerLabel = document.getElementById('rowTimer');
-    const scoreEl = document.getElementById('score');
-    const comboEl = document.getElementById('combo');
-    const bestComboEl = document.getElementById('bestCombo');
     const timeDisplay = document.getElementById('timeDisplay');
-    const levelEl = document.getElementById('level');
-    const statsBody = document.getElementById('statsBody');
-    const toggleStats = document.getElementById('toggleStats');
+    const headerScore = document.getElementById('headerScore');
+    const headerCombo = document.getElementById('headerCombo');
+    const headerLevel = document.getElementById('headerLevel');
     const tutorial = document.getElementById('tutorial');
     const startBtn = document.getElementById('startGame');
     const pauseBtn = document.getElementById('pauseBtn');
@@ -653,10 +685,9 @@
       timeDisplay.textContent = `${timeLeft.toFixed(1)}s`;
       timeDisplay.className = timeLeft < 10 ? 'time-low' : 'time-positive';
       rowTimerLabel.textContent = `Next row: ${rowTimer.toFixed(1)}s`;
-      scoreEl.textContent = score.toLocaleString();
-      comboEl.textContent = `x${combo.toFixed(1)}`;
-      bestComboEl.textContent = `x${bestCombo.toFixed(1)}`;
-      levelEl.textContent = level;
+      headerScore.textContent = score.toLocaleString();
+      headerCombo.textContent = `x${combo.toFixed(1)}`;
+      headerLevel.textContent = level;
     }
 
     function endGame() {
@@ -766,12 +797,6 @@
         dragging = false;
         pointerId = null;
         submitSelection();
-      });
-
-      toggleStats.addEventListener('click', () => {
-        const hidden = statsBody.style.display === 'none';
-        statsBody.style.display = hidden ? 'block' : 'none';
-        toggleStats.textContent = hidden ? '▲' : '▼';
       });
 
       pauseBtn.addEventListener('click', () => {
