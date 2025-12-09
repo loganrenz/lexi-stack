@@ -1548,20 +1548,25 @@
     }
 
     function addRow() {
-      const topHasTiles = grid[0].some(Boolean);
+      const topHasTiles = grid[0] && grid[0].some(Boolean);
       if (topHasTiles) {
         endGame();
         return;
       }
+      // Shift all rows up
       for (let r = 0; r < rows - 1; r++) {
-        grid[r] = grid[r + 1];
+        grid[r] = grid[r + 1] || Array.from({ length: cols }, () => null);
       }
-      const newRow = Array.from({ length: cols }, () => ({ letter: pickLetter(), id: `${Date.now()}-${Math.random()}` }));
+      // Create new row at the bottom with correct number of columns
+      const newRow = Array.from({ length: cols }, () => ({ 
+        letter: pickLetter(), 
+        id: `${Date.now()}-${Math.random()}` 
+      }));
       grid[rows - 1] = newRow;
       rowTimer = rowInterval;
       rowsAdded += 1;
       level = 1 + Math.floor(rowsAdded / 3);
-      renderGrid();
+      renderGrid(true); // Force full render after row addition
     }
 
     function decayCombo(delta) {
