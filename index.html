@@ -1320,8 +1320,9 @@
     const SELECTION_COOLDOWN = 50; // ms between selections to prevent accidental picks
     
     function handleSelection(row, col, e) {
-      const tile = grid[row][col];
-      if (!tile) return;
+      // Validate bounds first
+      if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+      if (!grid[row] || !grid[row][col]) return;
       if (!dragging) return;
       
       // Cooldown to prevent rapid accidental selections
@@ -1354,12 +1355,12 @@
       
       lastSelectionTime = now;
       // Always use the current tile from grid to ensure we have the latest letter
-      const currentTile = grid[row] && grid[row][col];
+      const currentTile = grid[row][col];
       if (!currentTile) {
         console.warn(`No tile at [${row},${col}] during selection`);
         return; // Tile was removed
       }
-      // Use the letter directly from the grid, not from the initial tile reference
+      // Use the letter directly from the grid
       selection.push({ row, col, letter: currentTile.letter });
       updateFloatingWord();
       renderGrid(false); // Use incremental update
