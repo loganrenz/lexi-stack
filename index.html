@@ -230,7 +230,7 @@
       border-color: rgba(34, 211, 238, 1);
     }
     .tile.invalid { 
-      animation: shake-and-flash 0.6s ease;
+      animation: shake-and-flash 0.3s ease;
       border-color: rgba(239, 68, 68, 1) !important;
       box-shadow: 0 8px 16px rgba(0,0,0,0.4), inset 0 0 0 2px rgba(239, 68, 68, 0.8), 0 0 16px rgba(239, 68, 68, 0.6) !important;
     }
@@ -280,7 +280,7 @@
     .floating-word .points { font-size: 0.85rem; color: #a5f3fc; }
     .floating-word.warning .points { color: #fca5a5; }
     .floating-word.shake {
-      animation: shake-floating 0.6s ease;
+      animation: shake-floating 0.3s ease;
     }
     @keyframes shake-floating {
       0%, 100% { transform: translate(-50%, -150%) translateX(0); }
@@ -448,7 +448,7 @@
     <div class="modal">
       <h2>Welcome to LexiStack!</h2>
       <p style="color: #cbd5e1; margin-bottom: 16px;">Create an account to start playing. No email required!</p>
-      <div style="margin-bottom: 12px;">
+      <form id="registerForm" style="margin-bottom: 12px;" autocomplete="on">
         <input 
           type="text" 
           id="registerUsernameInput" 
@@ -456,11 +456,12 @@
           placeholder="Choose a username" 
           style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
           maxlength="20"
-          autocomplete="off"
+          autocomplete="username"
           spellcheck="false"
           autocorrect="off"
           autocapitalize="off"
           inputmode="text"
+          required
         >
         <input 
           type="password" 
@@ -472,6 +473,8 @@
           spellcheck="false"
           autocorrect="off"
           autocapitalize="off"
+          required
+          minlength="6"
         >
         <input 
           type="password" 
@@ -483,11 +486,13 @@
           spellcheck="false"
           autocorrect="off"
           autocapitalize="off"
+          required
+          minlength="6"
         >
         <div id="registerStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
-      </div>
+      </form>
       <div class="modal-actions">
-        <button class="primary" id="registerBtn" style="width: 100%;">Create Account</button>
+        <button type="submit" form="registerForm" class="primary" id="registerBtn" style="width: 100%;">Create Account</button>
       </div>
     </div>
   </div>
@@ -1040,12 +1045,8 @@
         setTimeout(() => {
           floatingWord.classList.remove('shake');
           hideFloatingWord();
-        }, 600);
+        }, 300);
         addToast(`${word} is not a valid word`, 'error');
-        // Clear selection after shake animation completes
-        setTimeout(() => {
-          clearSelection();
-        }, 600);
         return;
       }
       hideFloatingWord();
@@ -1070,16 +1071,29 @@
     }
 
     function flashSelection() {
-      selection.forEach(sel => {
+      // Capture selection coordinates - keep selection during animation
+      const selectionCopy = [...selection];
+      
+      // Add invalid class to all selected tiles
+      selectionCopy.forEach(sel => {
         const tileEl = gridEl.querySelector(`.cell[data-row="${sel.row}"][data-col="${sel.col}"] .tile`);
         if (tileEl) {
           tileEl.classList.add('invalid');
-          // Remove invalid class after animation completes
-          setTimeout(() => {
-            tileEl.classList.remove('invalid');
-          }, 600);
         }
       });
+      
+      // After animation completes, remove invalid class, clear selection, and re-render
+      setTimeout(() => {
+        // Remove invalid class from tiles
+        selectionCopy.forEach(sel => {
+          const tileEl = gridEl.querySelector(`.cell[data-row="${sel.row}"][data-col="${sel.col}"] .tile`);
+          if (tileEl) {
+            tileEl.classList.remove('invalid');
+          }
+        });
+        // Clear selection and re-render grid
+        clearSelection();
+      }, 300);
     }
 
     function removeTiles() {
@@ -1323,6 +1337,12 @@
       });
 
       // Registration handlers
+      const registerForm = document.getElementById('registerForm');
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent default form submission
+        registerBtn.click(); // Trigger the existing registration logic
+      });
+      
       registerBtn.addEventListener('click', async () => {
         const username = registerUsernameInput.value.trim();
         const password = registerPasswordInput.value;
