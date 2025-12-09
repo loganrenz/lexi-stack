@@ -27,6 +27,12 @@ export default {
       if (path === '/api/user' && method === 'POST') {
         return handleCreateUser(request, env.DB, corsHeaders);
       }
+      if (path === '/api/user' && method === 'GET') {
+        return handleGetUser(request, env.DB, corsHeaders);
+      }
+      if (path === '/api/user/check' && method === 'GET') {
+        return handleCheckUsername(request, env.DB, corsHeaders);
+      }
       if (path === '/api/words' && method === 'POST') {
         return handleTrackWord(request, env.DB, corsHeaders);
       }
@@ -89,10 +95,63 @@ async function handleGetLeaderboard(request, db, corsHeaders) {
   );
 }
 
+// Check username availability
+async function handleCheckUsername(request, db, corsHeaders) {
+  const url = new URL(request.url);
+  const username = url.searchParams.get('username');
+
+  if (!username) {
+    return new Response(
+      JSON.stringify({ error: 'Username parameter required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+  
+  return new Response(
+    JSON.stringify({ available: !user, exists: !!user, taken: !!user }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+// Get user by username or ID
+async function handleGetUser(request, db, corsHeaders) {
+  const url = new URL(request.url);
+  const username = url.searchParams.get('username');
+  const userId = url.searchParams.get('userId');
+
+  if (!username && !userId) {
+    return new Response(
+      JSON.stringify({ error: 'Username or userId parameter required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  let user;
+  if (username) {
+    user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+  } else {
+    user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+  }
+
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'User not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ user }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
 // Create or get user
 async function handleCreateUser(request, db, corsHeaders) {
   const data = await request.json();
-  const { username, userId } = data;
+  const { username, password, userId } = data;
 
   if (!username) {
     return new Response(
@@ -101,15 +160,42 @@ async function handleCreateUser(request, db, corsHeaders) {
     );
   }
 
-  // If userId provided, check if exists
+  // If userId provided, check if exists (updating existing user)
   if (userId) {
     const existing = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
     if (existing) {
+      // Update username if different
+      if (existing.username !== username) {
+        // Check if new username is taken
+        const usernameTaken = await db.prepare('SELECT * FROM users WHERE username = ? AND id != ?').bind(username, userId).first();
+        if (usernameTaken) {
+          return new Response(
+            JSON.stringify({ error: 'Username already taken' }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        // Update username
+        await db.prepare('UPDATE users SET username = ? WHERE id = ?').bind(username, userId).run();
+        const updated = await db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
+        return new Response(
+          JSON.stringify({ user: updated }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ user: existing }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+  }
+
+  // Check if username already exists (for new users)
+  const existingUser = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
+  if (existingUser) {
+    return new Response(
+      JSON.stringify({ error: 'Username already taken', user: existingUser }),
+      { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   // Create new user
@@ -126,13 +212,13 @@ async function handleCreateUser(request, db, corsHeaders) {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    // Username might already exist, try to get by username
+    // Fallback: Username might already exist (race condition)
     if (error.message.includes('UNIQUE')) {
       const user = await db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
       if (user) {
         return new Response(
-          JSON.stringify({ user }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Username already taken', user }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
