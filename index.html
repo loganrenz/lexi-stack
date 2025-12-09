@@ -481,6 +481,7 @@
         </div>
       </div>
       <div class="controls">
+        <button id="howToPlayBtn" style="display: none;">How to Play</button>
         <button id="pauseBtn">Pause</button>
         <button id="resetBtn">Restart</button>
       </div>
@@ -2276,12 +2277,8 @@
       if (storedUser) {
         currentUser = storedUser;
         updateUserBadge();
-        // User exists, check if tutorial was seen
-        if (!localStorage.getItem('lexistack_tutorial_seen')) {
-          tutorial.style.display = 'flex';
-        } else {
-          clearAndReset();
-        }
+      // User exists, start game directly (tutorial can be accessed via button)
+      clearAndReset();
       } else {
         // No user, show registration first
         registerModal.style.display = 'flex';
