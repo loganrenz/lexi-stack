@@ -176,6 +176,66 @@
       flex-direction: column;
       min-height: 0;
     }
+    
+    .start-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 18, 36, 0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      border-radius: 12px;
+    }
+    
+    .start-button {
+      padding: 20px 60px;
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #22d3ee, #06b6d4);
+      color: #0b1224;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(34, 211, 238, 0.4), 0 0 0 4px rgba(34, 211, 238, 0.2);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .start-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 40px rgba(34, 211, 238, 0.5), 0 0 0 6px rgba(34, 211, 238, 0.3);
+    }
+    
+    .start-button:active {
+      transform: scale(0.98);
+    }
+    
+    .countdown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 18, 36, 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 101;
+      border-radius: 12px;
+    }
+    
+    #countdownCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
     @media (max-width: 768px) {
       .board-wrap {
         padding: 6px;
@@ -488,6 +548,16 @@
     </header>
 
     <div class="board-wrap">
+      <!-- Start Button Overlay -->
+      <div class="start-overlay" id="startOverlay" style="display: none;">
+        <button class="start-button" id="startButton">Start</button>
+      </div>
+      
+      <!-- Countdown Overlay -->
+      <div class="countdown-overlay" id="countdownOverlay" style="display: none;">
+        <canvas id="countdownCanvas"></canvas>
+      </div>
+      
       <div class="board" id="board">
         <svg class="path-layer" id="pathLayer"></svg>
         <div class="grid" id="grid"></div>
@@ -1698,7 +1768,6 @@
       if (reset) {
         gameOver.style.display = 'none';
       }
-      running = true;
       paused = false;
       lastTime = null;
       timeLeft = 60;
@@ -1717,6 +1786,16 @@
       resetGrid();
       renderGrid(true); // Force full render on reset
       updateUI();
+      // Show start button instead of starting immediately
+      if (startOverlay) startOverlay.style.display = 'flex';
+      running = false; // Don't start running until button is clicked
+    }
+    
+    function actuallyStartGame() {
+      // Hide overlays and actually start the game loop
+      if (startOverlay) startOverlay.style.display = 'none';
+      if (countdownOverlay) countdownOverlay.style.display = 'none';
+      running = true;
       requestAnimationFrame(gameLoop);
     }
 
@@ -1727,6 +1806,164 @@
 
     function clearAndReset() {
       startGame(true);
+      // startGame already shows the start button and sets running = false
+    }
+    
+    let countdownScene = null;
+    let countdownCamera = null;
+    let countdownRenderer = null;
+    let countdownMesh = null;
+    let countdownAnimationId = null;
+    
+    function showCountdown() {
+      if (!countdownCanvas || !window.THREE) {
+        // Fallback if Three.js not loaded
+        actuallyStartGame();
+        return;
+      }
+      
+      countdownOverlay.style.display = 'flex';
+      
+      // Set canvas size
+      const rect = countdownCanvas.getBoundingClientRect();
+      countdownCanvas.width = rect.width * window.devicePixelRatio;
+      countdownCanvas.height = rect.height * window.devicePixelRatio;
+      
+      // Create scene
+      countdownScene = new THREE.Scene();
+      countdownCamera = new THREE.PerspectiveCamera(75, rect.width / rect.height, 0.1, 1000);
+      countdownRenderer = new THREE.WebGLRenderer({ canvas: countdownCanvas, alpha: true, antialias: true });
+      countdownRenderer.setSize(rect.width * window.devicePixelRatio, rect.height * window.devicePixelRatio);
+      countdownRenderer.setPixelRatio(window.devicePixelRatio);
+      
+      // Position camera
+      countdownCamera.position.z = 5;
+      
+      // Create text geometry (using a simple approach)
+      const countdownNumbers = [3, 2, 1];
+      let currentIndex = 0;
+      
+      function createCountdownText(number) {
+        // Clear previous mesh
+        if (countdownMesh) {
+          countdownScene.remove(countdownMesh);
+          countdownMesh.geometry.dispose();
+          countdownMesh.material.dispose();
+        }
+        
+        // Create canvas for text
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.fillStyle = '#22d3ee';
+        ctx.font = 'bold 400px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(number.toString(), 256, 256);
+        
+        // Create texture
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        
+        // Create material with glow effect
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          color: 0x22d3ee,
+          emissive: 0x22d3ee,
+          emissiveIntensity: 1.5
+        });
+        
+        // Create plane
+        const geometry = new THREE.PlaneGeometry(3, 3);
+        countdownMesh = new THREE.Mesh(geometry, material);
+        countdownMesh.position.set(0, 0, 0);
+        countdownMesh.scale.set(1, 1, 1);
+        countdownScene.add(countdownMesh);
+      }
+      
+      function animateCountdown() {
+        if (currentIndex >= countdownNumbers.length) {
+          // Countdown complete
+          if (countdownAnimationId) {
+            cancelAnimationFrame(countdownAnimationId);
+          }
+          if (countdownMesh) {
+            countdownScene.remove(countdownMesh);
+            countdownMesh.geometry.dispose();
+            countdownMesh.material.dispose();
+          }
+          if (countdownRenderer) {
+            countdownRenderer.dispose();
+          }
+          actuallyStartGame();
+          return;
+        }
+        
+        const number = countdownNumbers[currentIndex];
+        createCountdownText(number);
+        
+        // Animate scale and rotation
+        const startTime = performance.now();
+        const duration = 1000; // 1 second per number
+        
+        function animate() {
+          const elapsed = performance.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          if (countdownMesh) {
+            // Scale animation: start big, shrink to normal, then fade
+            if (progress < 0.2) {
+              const scale = 1 + (1 - progress / 0.2) * 0.5; // Start at 1.5x
+              countdownMesh.scale.set(scale, scale, 1);
+              countdownMesh.material.opacity = 1;
+            } else if (progress < 0.8) {
+              countdownMesh.scale.set(1, 1, 1);
+              countdownMesh.material.opacity = 1;
+            } else {
+              const fadeProgress = (progress - 0.8) / 0.2;
+              countdownMesh.material.opacity = 1 - fadeProgress;
+              const scale = 1 + fadeProgress * 0.3;
+              countdownMesh.scale.set(scale, scale, 1);
+            }
+            
+            // Rotation animation
+            countdownMesh.rotation.z = Math.sin(progress * Math.PI * 2) * 0.1;
+          }
+          
+          countdownRenderer.render(countdownScene, countdownCamera);
+          
+          if (progress < 1) {
+            countdownAnimationId = requestAnimationFrame(animate);
+          } else {
+            // Move to next number
+            currentIndex++;
+            if (currentIndex < countdownNumbers.length) {
+              setTimeout(() => {
+                countdownAnimationId = requestAnimationFrame(animateCountdown);
+              }, 100);
+            } else {
+              // All numbers done
+              if (countdownMesh) {
+                countdownScene.remove(countdownMesh);
+                countdownMesh.geometry.dispose();
+                countdownMesh.material.dispose();
+              }
+              if (countdownRenderer) {
+                countdownRenderer.dispose();
+              }
+              actuallyStartGame();
+            }
+          }
+        }
+        
+        countdownAnimationId = requestAnimationFrame(animate);
+      }
+      
+      // Start countdown
+      animateCountdown();
     }
 
     function attachEvents() {
@@ -1945,6 +2182,8 @@
 
       againBtn.addEventListener('click', () => {
         clearAndReset();
+        // Show start button
+        if (startOverlay) startOverlay.style.display = 'flex';
       });
       homeBtn.addEventListener('click', () => {
         gameOver.style.display = 'none';
@@ -2290,5 +2529,6 @@
     window.addEventListener('resize', drawPath);
     init();
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </body>
 </html>
