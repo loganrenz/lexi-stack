@@ -200,14 +200,19 @@ export const useThreeTowerScene = (
       // Update tile animations
       for (const mesh of tileMeshes.values()) {
         const targetY = getTileY(mesh.userData.row)
+        const targetX = getTileX(mesh.userData.col)
         mesh.position.y += (targetY - mesh.position.y) * Math.min(12 * delta, 1)
+        mesh.position.x += (targetX - mesh.position.x) * Math.min(12 * delta, 1)
         mesh.rotation.z = Math.sin(clock.elapsedTime * 0.45 + mesh.userData.col * 0.18) * 0.04
 
         if (selectedMeshes.has(mesh)) {
           const pulse = 1 + Math.sin(clock.elapsedTime * 6) * 0.05
           mesh.scale.setScalar(1.08 * pulse)
+          // Slightly lift selected tiles
+          mesh.position.z = 0.3
         } else {
           mesh.scale.setScalar(1)
+          mesh.position.z = 0
         }
       }
 

@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
-    <div class="mx-auto max-w-6xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6">
+    <div class="mx-auto max-w-6xl px-2 sm:px-4 pb-4 pt-2 sm:pt-4">
       <!-- Top Bar -->
-      <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
         <div class="flex items-center gap-3">
           <UButton
             variant="ghost"
@@ -19,86 +19,100 @@
             </h1>
           </div>
         </div>
-        <div class="flex items-center gap-2 sm:gap-3">
-          <UButton icon="i-heroicons-question-mark-circle" variant="ghost" @click="openTutorial" class="text-slate-200">
-            How to play
+        <div class="flex items-center gap-1 sm:gap-2">
+          <UButton 
+            icon="i-heroicons-question-mark-circle" 
+            variant="ghost" 
+            @click="openTutorial" 
+            class="text-slate-200 p-2 sm:p-2.5"
+            size="sm"
+          >
+            <span class="hidden sm:inline">How to play</span>
           </UButton>
           <UButton
             color="cyan"
             variant="ghost"
             :icon="isPaused ? 'i-heroicons-play' : 'i-heroicons-pause'"
             @click="togglePause"
-            class="min-w-[96px]"
+            class="p-2 sm:p-2.5 min-w-[60px] sm:min-w-[96px]"
+            size="sm"
           >
-            {{ isPaused ? 'Resume' : 'Pause' }}
+            <span class="hidden sm:inline">{{ isPaused ? 'Resume' : 'Pause' }}</span>
           </UButton>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 shadow-lg">
-          <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Score</p>
-          <p class="text-2xl sm:text-3xl font-bold">{{ score.toLocaleString() }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 shadow-lg">
-          <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Combo</p>
-          <p class="text-2xl sm:text-3xl font-bold text-emerald-400">x{{ comboMultiplier.toFixed(1) }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 shadow-lg">
-          <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Time</p>
-          <div class="flex items-baseline gap-2">
-            <p class="text-2xl sm:text-3xl font-bold" :class="timeRemaining < 10 ? 'text-red-400' : 'text-cyan-400'">
-              {{ Math.ceil(timeRemaining) }}s
-            </p>
-            <span class="text-xs text-slate-400">stay above danger</span>
+
+      <!-- Stats Overlay -->
+      <div class="fixed top-2 right-2 sm:top-4 sm:right-4 z-40">
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-if="statsExpanded"
+            class="bg-black/80 backdrop-blur-md border border-white/10 rounded-xl sm:rounded-2xl p-2 sm:p-3 shadow-2xl min-w-[120px] sm:min-w-[140px]"
+          >
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400">Score</span>
+                <span class="text-lg font-bold">{{ score.toLocaleString() }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400">Combo</span>
+                <span class="text-lg font-bold text-emerald-400">x{{ comboMultiplier.toFixed(1) }}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400">Time</span>
+                <span class="text-lg font-bold" :class="timeRemaining < 10 ? 'text-red-400' : 'text-cyan-400'">
+                  {{ Math.ceil(timeRemaining) }}s
+                </span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400">Level</span>
+                <span class="text-lg font-bold text-blue-400">{{ level }}</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 shadow-lg">
-          <p class="text-[11px] uppercase tracking-[0.18em] text-slate-300">Level</p>
-          <p class="text-2xl sm:text-3xl font-bold text-blue-400">{{ level }}</p>
-        </div>
+        </Transition>
+        <button
+          @click="statsExpanded = !statsExpanded"
+          class="bg-black/80 backdrop-blur-md border border-white/10 rounded-xl p-2.5 shadow-lg hover:bg-black/90 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <span class="i-heroicons-chart-bar text-white text-lg"></span>
+            <span v-if="!statsExpanded" class="text-xs font-semibold text-white">
+              {{ score.toLocaleString() }}
+            </span>
+            <span class="i-heroicons-chevron-down text-white text-xs transition-transform" :class="{ 'rotate-180': statsExpanded }"></span>
+          </div>
+        </button>
       </div>
 
       <!-- Game Canvas -->
       <div
-        class="relative h-[52vh] min-h-[320px] sm:h-[60vh] sm:min-h-[500px] rounded-2xl border border-white/10 bg-gradient-to-b from-slate-950 to-slate-900 overflow-hidden shadow-2xl mb-4"
+        class="relative h-[60vh] min-h-[400px] sm:h-[65vh] sm:min-h-[500px] rounded-2xl border border-white/10 bg-gradient-to-b from-slate-950 to-slate-900 overflow-hidden shadow-2xl"
       >
-        <canvas ref="canvasRef" class="h-full w-full touch-none" :class="{ 'pointer-events-none': isGameOver }"></canvas>
+        <canvas ref="canvasRef" class="h-full w-full" :class="{ 'pointer-events-none': isGameOver }" style="touch-action: none;"></canvas>
 
-        <!-- Global Timer Bar -->
-        <div class="absolute top-3 left-3 right-3 z-10 space-y-2">
-          <div class="bg-black/70 border border-white/10 rounded-xl px-4 py-3 backdrop-blur-md shadow-lg">
-            <div class="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-gray-300">
-              <span>Time Remaining</span>
+        <!-- Global Timer Bar (Simplified for Mobile) -->
+        <div class="absolute top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 z-10">
+          <div class="bg-black/70 border border-white/10 rounded-lg sm:rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 backdrop-blur-md shadow-lg">
+            <div class="flex items-center justify-between text-[10px] sm:text-[11px] uppercase tracking-wider text-gray-300 mb-1">
+              <span class="hidden sm:inline">Time</span>
               <span :class="timeRemaining < 10 ? 'text-red-300' : 'text-emerald-200'">{{ Math.ceil(timeRemaining) }}s</span>
             </div>
-            <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden mt-2">
+            <div class="w-full h-2 sm:h-3 bg-white/10 rounded-full overflow-hidden">
               <div
                 class="h-full transition-all duration-300"
                 :class="timeBarClass"
                 :style="{ width: `${timePercent}%` }"
               ></div>
             </div>
-          </div>
-
-          <div class="bg-black/60 border border-white/10 rounded-lg px-3 py-2 backdrop-blur-md">
-            <div class="text-[10px] sm:text-[11px] uppercase tracking-[0.15em] text-gray-300 mb-2 flex items-center justify-between">
-              <span>Next Row</span>
-              <span class="text-xs text-slate-200">{{ rowTimer.toFixed(1) }}s</span>
-            </div>
-            <div class="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
-              <div
-                class="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-200"
-                :style="{ width: `${rowTimerPercent}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Danger Line Indicator -->
-        <div class="absolute top-20 left-3 z-10 bg-black/60 border border-white/10 rounded-lg px-3 py-2 backdrop-blur-md">
-          <div class="text-[10px] sm:text-[11px] uppercase tracking-[0.15em] text-amber-300">
-            Danger Line
           </div>
         </div>
 
@@ -142,103 +156,58 @@
         </Transition>
       </div>
 
-      <!-- Word Input Panel -->
-      <UCard
-        class="bg-slate-900/90 border-white/10 backdrop-blur-md shadow-2xl fixed bottom-0 left-0 right-0 sm:bottom-3 sm:left-6 sm:right-6 sm:rounded-2xl"
-        style="padding-bottom: env(safe-area-inset-bottom)"
+      <!-- Floating Word Feedback -->
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0 scale-90"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-90"
       >
-        <div class="flex flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4 max-w-5xl mx-auto">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-slate-200">
-              <span class="i-heroicons-sparkles text-emerald-300"></span>
-              Current Word
+        <div
+          v-if="isDragging && floatingWordPosition && selectedTiles.length > 0"
+          class="fixed pointer-events-none z-50"
+          :style="{
+            left: floatingWordPosition ? `${Math.min(Math.max(floatingWordPosition.x, 80), (typeof window !== 'undefined' ? window.innerWidth : 1000) - 80)}px` : '50%',
+            top: floatingWordPosition ? `${Math.max(floatingWordPosition.y - 70, 20)}px` : '50%',
+            transform: 'translateX(-50%)'
+          }"
+        >
+          <div class="bg-emerald-500/95 backdrop-blur-md border border-emerald-400/50 rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-2xl">
+            <div class="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+              {{ currentWord }}
             </div>
-            <div class="flex items-center gap-3 text-sm sm:text-base text-slate-100">
-              <span class="text-emerald-300 font-semibold" v-if="potentialScore">Potential +{{ potentialScore }} pts</span>
-              <span class="text-slate-300 font-medium">{{ cursorLabel }}</span>
-            </div>
-          </div>
-
-          <div
-            class="flex flex-wrap items-center gap-2 sm:gap-3"
-            :class="{ 'word-shake': statusMessageType === 'error' && statusMessage }"
-          >
-            <TransitionGroup name="letter" tag="div" class="flex flex-wrap gap-2 sm:gap-3 items-center">
-              <template v-for="(tile, index) in selectedTiles" :key="`${tile.position.row}-${tile.position.col}-${index}`">
-                <span
-                  class="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-100 font-semibold text-xl sm:text-2xl shadow-lg shadow-emerald-500/10"
-                >
-                  {{ tile.letter }}
-                </span>
-                <div v-if="index !== selectedTiles.length - 1" class="w-6 sm:w-8 h-[2px] bg-emerald-400/40 rounded-full"></div>
-              </template>
-            </TransitionGroup>
-            <span v-if="!selectedTiles.length" class="text-base sm:text-lg text-slate-300 italic">
-              Tap connected letters to build a word
-            </span>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-            <UButton
-              variant="ghost"
-              icon="i-heroicons-arrow-uturn-left"
-              :disabled="!selectedTiles.length"
-              @click="undoLastSelection"
-              class="min-h-[44px] sm:min-h-[48px] flex-1 sm:flex-none"
-            >
-              Undo
-            </UButton>
-            <UButton
-              variant="ghost"
-              icon="i-heroicons-x-mark"
-              :disabled="!selectedTiles.length"
-              @click="clearSelection"
-              class="min-h-[44px] sm:min-h-[48px] flex-1 sm:flex-none"
-            >
-              Clear
-            </UButton>
-            <UTooltip :text="submitTooltip" :open-delay="150">
-              <UButton
-                color="emerald"
-                icon="i-heroicons-check"
-                :disabled="!canSubmit || isGameOver || isSubmitting"
-                :loading="isSubmitting"
-                @click="handleSubmit"
-                class="min-h-[48px] px-5 sm:px-6 flex-1"
-              >
-                Submit word
-              </UButton>
-            </UTooltip>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-3 text-sm sm:text-base">
-            <Transition
-              enter-active-class="transition duration-200 ease-out"
-              enter-from-class="opacity-0 translate-y-2"
-              enter-to-class="opacity-100 translate-y-0"
-              leave-active-class="transition duration-150 ease-in"
-              leave-from-class="opacity-100 translate-y-0"
-              leave-to-class="opacity-0 translate-y-2"
-            >
-              <p
-                v-if="statusMessage"
-                class="font-semibold"
-                :class="statusMessageType === 'error' ? 'text-red-400' : 'text-emerald-300'"
-              >
-                {{ statusMessage }}
-              </p>
-            </Transition>
-            <div v-if="isDictionaryLoading" class="flex items-center gap-2 text-xs sm:text-sm text-slate-300">
-              <span class="i-heroicons-arrow-path animate-spin"></span>
-              Loading dictionary...
-            </div>
-            <div v-else-if="dictionaryFallback" class="flex items-center gap-2 text-xs sm:text-sm text-amber-300 font-semibold">
-              <span class="i-heroicons-exclamation-triangle"></span>
-              Limited dictionary loaded; some words may be missing.
+            <div v-if="potentialScore" class="text-[10px] sm:text-xs text-emerald-100 mt-0.5 sm:mt-1 text-center">
+              +{{ potentialScore }} pts
             </div>
           </div>
         </div>
-      </UCard>
+      </Transition>
+
+      <!-- Toast Notifications -->
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+      >
+        <div
+          v-if="statusMessage"
+          class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+        >
+          <div
+            class="px-6 py-3 rounded-xl shadow-2xl backdrop-blur-md border"
+            :class="statusMessageType === 'error' 
+              ? 'bg-red-500/95 border-red-400/50 text-white' 
+              : 'bg-emerald-500/95 border-emerald-400/50 text-white'"
+          >
+            <p class="font-semibold text-sm sm:text-base">{{ statusMessage }}</p>
+          </div>
+        </div>
+      </Transition>
 
       <UModal v-model="showTutorial" :ui="{ width: 'max-w-lg' }">
         <UCard>
@@ -249,23 +218,23 @@
             </div>
           </template>
           <div class="space-y-3 text-slate-200">
-            <p class="text-sm text-slate-300">Connect glowing cubes to form words and keep the tower below the danger line.</p>
+            <p class="text-sm text-slate-300">Drag your finger across connected letters to form words and keep the tower below the danger line.</p>
             <ul class="space-y-2 text-sm">
               <li class="flex gap-3">
-                <span class="i-heroicons-cursor-arrow-rays text-emerald-300"></span>
-                <span>Tap letters that touch each other (diagonals count) to build your word.</span>
+                <span class="i-heroicons-hand-raised text-emerald-300"></span>
+                <span>Touch and drag across adjacent letters (diagonals count) to build your word.</span>
               </li>
               <li class="flex gap-3">
-                <span class="i-heroicons-arrow-uturn-left text-emerald-300"></span>
-                <span>Use Undo if you tap the wrong block, or Clear to start over.</span>
+                <span class="i-heroicons-arrow-up-on-square text-emerald-300"></span>
+                <span>Lift your finger to automatically submit the word if it's valid (2+ letters).</span>
               </li>
               <li class="flex gap-3">
-                <span class="i-heroicons-check-circle text-emerald-300"></span>
-                <span>Submit real words to clear tiles, earn time, and grow your combo.</span>
+                <span class="i-heroicons-sparkles text-emerald-300"></span>
+                <span>Valid words clear tiles, earn points, add time, and increase your combo multiplier.</span>
               </li>
               <li class="flex gap-3">
                 <span class="i-heroicons-exclamation-triangle text-amber-400"></span>
-                <span>Keep the tower under the danger line and race the timer.</span>
+                <span>Keep the tower under the danger line and race the timer to survive!</span>
               </li>
             </ul>
           </div>
@@ -334,6 +303,13 @@ const isPaused = ref(false)
 const cursorPosition = ref({ row: 0, col: 0 })
 const showTutorial = ref(false)
 
+// Drag interaction state
+const isDragging = ref(false)
+const dragStartPosition = ref<{ x: number; y: number } | null>(null)
+const floatingWordPosition = ref<{ x: number; y: number } | null>(null)
+const lastDragTile = ref<GridPosition | null>(null)
+const statsExpanded = ref(false)
+
 // Computed
 const rowTimerPercent = computed(() => Math.max(0, Math.min(100, (rowTimer.value / rowTimerInterval.value) * 100)))
 const canSubmit = computed(() => selectedTiles.value.length >= 2)
@@ -355,6 +331,8 @@ const timeBarClass = computed(() => {
 let gameLoopId: number | null = null
 let lastTime = 0
 let handleKeyDown: ((e: KeyboardEvent) => void) | null = null
+let handlePointerMove: ((e: MouseEvent | TouchEvent) => void) | null = null
+let handlePointerEnd: ((e: MouseEvent | TouchEvent) => void) | null = null
 
 const gameLoop = (currentTime: number) => {
   if (!lastTime) lastTime = currentTime
@@ -398,21 +376,87 @@ const updateScene = () => {
   scene.highlightTiles(positions)
 }
 
-// Handle tile click
-const handleTileClick = (event: MouseEvent | TouchEvent) => {
+// Handle drag start
+const handleDragStart = (event: MouseEvent | TouchEvent) => {
   if (isGameOver.value || isPaused.value) return
-
+  
+  // Don't prevent default on touchstart to allow scrolling if needed
   const x = 'touches' in event ? event.touches[0].clientX : event.clientX
   const y = 'touches' in event ? event.touches[0].clientY : event.clientY
-
+  
+  dragStartPosition.value = { x, y }
+  floatingWordPosition.value = { x, y }
+  isDragging.value = true
+  lastDragTile.value = null
+  
+  // Clear previous selection when starting new drag
+  clearSelection()
+  
   const position = scene.getTileFromScreen(x, y)
-  if (!position) return
+  if (position) {
+    const result = toggleTile(position)
+    if (result.success) {
+      lastDragTile.value = position
+      updateScene()
+      // Prevent default after we've started selecting
+      event.preventDefault()
+    }
+  }
+}
 
-  const result = toggleTile(position)
-  if (!result.success && result.message) {
-    showStatus(result.message, 'error')
-    scene.flashTiles([position])
-  } else {
+// Handle drag move
+const handleDragMove = (event: MouseEvent | TouchEvent) => {
+  if (!isDragging.value || isGameOver.value || isPaused.value) return
+  
+  event.preventDefault()
+  const x = 'touches' in event ? event.touches[0].clientX : event.clientX
+  const y = 'touches' in event ? event.touches[0].clientY : event.clientY
+  
+  floatingWordPosition.value = { x, y }
+  
+  const position = scene.getTileFromScreen(x, y)
+  if (position) {
+    // Check if this is a different tile than the last one we processed
+    const isNewTile = !lastDragTile.value || 
+      lastDragTile.value.row !== position.row || 
+      lastDragTile.value.col !== position.col
+    
+    if (isNewTile) {
+      // Check if tile is already in selection
+      const alreadySelected = selectedTiles.value.some(
+        t => t.position.row === position.row && t.position.col === position.col
+      )
+      
+      if (!alreadySelected) {
+        // Try to add tile to selection (only if adjacent to last selected)
+        const result = toggleTile(position)
+        if (result.success) {
+          lastDragTile.value = position
+          updateScene()
+        }
+      } else {
+        // Already selected, update last drag tile but don't deselect
+        lastDragTile.value = position
+      }
+    }
+  }
+}
+
+// Handle drag end
+const handleDragEnd = async (event: MouseEvent | TouchEvent) => {
+  if (!isDragging.value) return
+  
+  event.preventDefault()
+  isDragging.value = false
+  floatingWordPosition.value = null
+  lastDragTile.value = null
+  
+  // Auto-submit if valid word
+  if (selectedTiles.value.length >= 2) {
+    await handleSubmit()
+  } else if (selectedTiles.value.length > 0) {
+    // Clear selection if too short
+    clearSelection()
     updateScene()
   }
 }
@@ -439,6 +483,10 @@ const handleSubmit = async () => {
     showStatus(result.message, 'error')
     scene.flashTiles(selectedTiles.value.map(t => t.position))
   }
+  
+  // Clear selection after submission attempt
+  clearSelection()
+  updateScene()
 }
 
 // Show status message
@@ -555,9 +603,27 @@ onMounted(async () => {
   // Initialize scene
   scene.init()
 
-  // Setup event listeners
-  canvasRef.value.addEventListener('pointerdown', handleTileClick)
-  canvasRef.value.addEventListener('touchstart', handleTileClick, { passive: true })
+  // Setup event listeners for drag interaction
+  canvasRef.value.addEventListener('pointerdown', handleDragStart)
+  canvasRef.value.addEventListener('touchstart', handleDragStart, { passive: false })
+  
+  handlePointerMove = (e: MouseEvent | TouchEvent) => {
+    if (isDragging.value) {
+      handleDragMove(e)
+    }
+  }
+  handlePointerEnd = (e: MouseEvent | TouchEvent) => {
+    if (isDragging.value) {
+      handleDragEnd(e)
+    }
+  }
+  
+  window.addEventListener('pointermove', handlePointerMove)
+  window.addEventListener('pointerup', handlePointerEnd)
+  window.addEventListener('touchmove', handlePointerMove, { passive: false })
+  window.addEventListener('touchend', handlePointerEnd)
+  window.addEventListener('touchcancel', handlePointerEnd)
+  
   window.addEventListener('resize', scene.handleResize)
   handleKeyDown = (e: KeyboardEvent) => {
     if (['ArrowUp', 'w', 'W'].includes(e.key)) {
@@ -599,8 +665,17 @@ onBeforeUnmount(() => {
     cancelAnimationFrame(gameLoopId)
   }
   if (canvasRef.value) {
-    canvasRef.value.removeEventListener('pointerdown', handleTileClick)
-    canvasRef.value.removeEventListener('touchstart', handleTileClick)
+    canvasRef.value.removeEventListener('pointerdown', handleDragStart)
+    canvasRef.value.removeEventListener('touchstart', handleDragStart)
+  }
+  if (handlePointerMove) {
+    window.removeEventListener('pointermove', handlePointerMove)
+    window.removeEventListener('touchmove', handlePointerMove)
+  }
+  if (handlePointerEnd) {
+    window.removeEventListener('pointerup', handlePointerEnd)
+    window.removeEventListener('touchend', handlePointerEnd)
+    window.removeEventListener('touchcancel', handlePointerEnd)
   }
   window.removeEventListener('resize', scene.handleResize)
   if (handleKeyDown) {
