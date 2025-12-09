@@ -1,0 +1,23 @@
+{
+  "name": "lexi-stack",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A beautiful 3D word tower game built with Three.js and Nuxt",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^2.18.0",
+    "nuxt": "^4.0.0",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest"
+  }
+}
+
