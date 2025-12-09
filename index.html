@@ -400,7 +400,10 @@
 <body>
   <div class="app">
     <header>
-      <div class="brand">LexiStack <span class="badge">v2</span></div>
+      <div class="brand">
+        LexiStack <span class="badge">v2</span>
+        <span id="userBadge" style="display: none; margin-left: 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 500;"></span>
+      </div>
       <div class="header-stats" id="headerStats">
         <div class="stat-item">
           <span class="stat-label">Score</span>
@@ -439,6 +442,27 @@
 
   <div class="floating-word" id="floatingWord"><div class="word" id="floatingText"></div><div class="points" id="floatingPoints"></div></div>
   <div class="toast-area" id="toasts"></div>
+
+  <div class="overlay" id="registerModal" style="display:none;">
+    <div class="modal">
+      <h2>Welcome to LexiStack!</h2>
+      <p style="color: #cbd5e1; margin-bottom: 16px;">Enter a username to start playing. No email required!</p>
+      <div style="margin-bottom: 16px;">
+        <input 
+          type="text" 
+          id="registerUsernameInput" 
+          placeholder="Choose a username" 
+          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+          maxlength="20"
+          autocomplete="off"
+        >
+        <div id="registerStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="primary" id="registerBtn" style="width: 100%;">Start Playing</button>
+      </div>
+    </div>
+  </div>
 
   <div class="overlay" id="tutorial" style="display:none;">
     <div class="modal">
@@ -540,6 +564,11 @@
     const headerTime = document.getElementById('headerTime');
     const headerRowTimer = document.getElementById('headerRowTimer');
     const headerLevel = document.getElementById('headerLevel');
+    const userBadge = document.getElementById('userBadge');
+    const registerModal = document.getElementById('registerModal');
+    const registerUsernameInput = document.getElementById('registerUsernameInput');
+    const registerBtn = document.getElementById('registerBtn');
+    const registerStatus = document.getElementById('registerStatus');
     const tutorial = document.getElementById('tutorial');
     const startBtn = document.getElementById('startGame');
     const pauseBtn = document.getElementById('pauseBtn');
@@ -586,6 +615,23 @@
     // API functions
     const API_BASE_URL = 'https://lexi-stack-api.narduk.workers.dev';
     
+    // User management with localStorage
+    function saveUserToStorage(user) {
+      localStorage.setItem('lexistack_user', JSON.stringify(user));
+    }
+    
+    function loadUserFromStorage() {
+      const stored = localStorage.getItem('lexistack_user');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    }
+    
     async function getOrCreateUser(username, userId = null) {
       try {
         const response = await fetch(`${API_BASE_URL}/api/user`, {
@@ -594,10 +640,20 @@
           body: JSON.stringify({ username, userId }),
         });
         const data = await response.json();
+        if (data.user) {
+          saveUserToStorage(data.user);
+        }
         return data.user;
       } catch (error) {
         console.error('Error creating user:', error);
-        return null;
+        // If API fails, create a local-only user
+        const localUser = {
+          id: userId || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          username: username,
+          local: true
+        };
+        saveUserToStorage(localUser);
+        return localUser;
       }
     }
     
@@ -989,17 +1045,12 @@
       finalCombo.textContent = `x${bestCombo.toFixed(1)}`;
       finalLongest.textContent = longestWord || '-';
       
-      // Show user section if no user, or show status if user exists
-      if (!currentUser) {
-        userSection.style.display = 'block';
-        usernameInput.value = '';
-        userStatus.textContent = '';
-        leaderboardBtn.style.display = 'none';
-      } else {
+      // User should always exist at this point (registered at start)
+      if (currentUser) {
         userSection.style.display = 'none';
         userStatus.textContent = `Playing as: ${currentUser.username}`;
         leaderboardBtn.style.display = 'inline-block';
-        // Auto-submit score if user exists
+        // Auto-submit score
         submitScore(currentUser.id, {
           score,
           combo: bestCombo,
@@ -1011,6 +1062,12 @@
             addToast('Score saved!', 'success');
           }
         });
+      } else {
+        // Fallback: shouldn't happen, but handle gracefully
+        userSection.style.display = 'block';
+        usernameInput.value = '';
+        userStatus.textContent = '';
+        leaderboardBtn.style.display = 'none';
       }
     }
 
@@ -1130,6 +1187,63 @@
         clearAndReset();
       });
 
+      // Registration handlers
+      registerBtn.addEventListener('click', async () => {
+        const username = registerUsernameInput.value.trim();
+        if (!username) {
+          registerStatus.textContent = 'Please enter a username';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        if (username.length < 2) {
+          registerStatus.textContent = 'Username must be at least 2 characters';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        if (username.length > 20) {
+          registerStatus.textContent = 'Username must be 20 characters or less';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          registerStatus.textContent = 'Username can only contain letters, numbers, and underscores';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        
+        registerBtn.disabled = true;
+        registerBtn.textContent = 'Creating account...';
+        registerStatus.textContent = '';
+        
+        const user = await getOrCreateUser(username);
+        if (user) {
+          currentUser = user;
+          updateUserBadge();
+          registerModal.style.display = 'none';
+          // Show tutorial if not seen before
+          if (!localStorage.getItem('lexistack_tutorial_seen')) {
+            tutorial.style.display = 'flex';
+          } else {
+            clearAndReset();
+          }
+        } else {
+          registerStatus.textContent = 'Failed to create account. Please try again.';
+          registerStatus.style.color = '#ef4444';
+          registerBtn.disabled = false;
+          registerBtn.textContent = 'Start Playing';
+        }
+      });
+      
+      registerUsernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          registerBtn.click();
+        }
+      });
+      
+      registerUsernameInput.addEventListener('input', () => {
+        registerStatus.textContent = '';
+      });
+
       startBtn.addEventListener('click', () => {
         tutorial.style.display = 'none';
         localStorage.setItem('lexistack_tutorial_seen', '1');
@@ -1156,12 +1270,13 @@
         }
         saveScoreBtn.disabled = true;
         saveScoreBtn.textContent = 'Saving...';
-        const user = await getOrCreateUser(username, currentUser?.id);
-        if (user) {
-          currentUser = user;
-          userSection.style.display = 'none';
-          userStatus.textContent = `Playing as: ${user.username}`;
-          leaderboardBtn.style.display = 'inline-block';
+         const user = await getOrCreateUser(username, currentUser?.id);
+         if (user) {
+           currentUser = user;
+           updateUserBadge();
+           userSection.style.display = 'none';
+           userStatus.textContent = `Playing as: ${user.username}`;
+           leaderboardBtn.style.display = 'inline-block';
           // Submit score
           const success = await submitScore(user.id, {
             score,
@@ -1210,14 +1325,35 @@
       });
     }
 
-    function init() {
-      if (!localStorage.getItem('lexistack_tutorial_seen')) {
-        tutorial.style.display = 'flex';
+    function updateUserBadge() {
+      if (currentUser) {
+        userBadge.textContent = `@${currentUser.username}`;
+        userBadge.style.display = 'inline';
       } else {
-        clearAndReset();
+        userBadge.style.display = 'none';
       }
+    }
+
+    async function init() {
       attachEvents();
       loadDictionary();
+      
+      // Check if user exists
+      const storedUser = loadUserFromStorage();
+      if (storedUser) {
+        currentUser = storedUser;
+        updateUserBadge();
+        // User exists, check if tutorial was seen
+        if (!localStorage.getItem('lexistack_tutorial_seen')) {
+          tutorial.style.display = 'flex';
+        } else {
+          clearAndReset();
+        }
+      } else {
+        // No user, show registration first
+        registerModal.style.display = 'flex';
+        registerUsernameInput.focus();
+      }
     }
 
     window.addEventListener('resize', drawPath);
