@@ -447,20 +447,34 @@
   <div class="overlay" id="registerModal" style="display:none;">
     <div class="modal">
       <h2>Welcome to LexiStack!</h2>
-      <p style="color: #cbd5e1; margin-bottom: 16px;">Enter a username to start playing. No email required!</p>
-      <div style="margin-bottom: 16px;">
+      <p style="color: #cbd5e1; margin-bottom: 16px;">Create an account to start playing. No email required!</p>
+      <div style="margin-bottom: 12px;">
         <input 
           type="text" 
           id="registerUsernameInput" 
           placeholder="Choose a username" 
-          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
           maxlength="20"
-          autocomplete="off"
+          autocomplete="username"
+        >
+        <input 
+          type="password" 
+          id="registerPasswordInput" 
+          placeholder="Create a password (min 6 characters)" 
+          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
+          autocomplete="new-password"
+        >
+        <input 
+          type="password" 
+          id="registerConfirmPasswordInput" 
+          placeholder="Confirm password" 
+          style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
+          autocomplete="new-password"
         >
         <div id="registerStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
       </div>
       <div class="modal-actions">
-        <button class="primary" id="registerBtn" style="width: 100%;">Start Playing</button>
+        <button class="primary" id="registerBtn" style="width: 100%;">Create Account</button>
       </div>
     </div>
   </div>
@@ -568,6 +582,8 @@
     const userBadge = document.getElementById('userBadge');
     const registerModal = document.getElementById('registerModal');
     const registerUsernameInput = document.getElementById('registerUsernameInput');
+    const registerPasswordInput = document.getElementById('registerPasswordInput');
+    const registerConfirmPasswordInput = document.getElementById('registerConfirmPasswordInput');
     const registerBtn = document.getElementById('registerBtn');
     const registerStatus = document.getElementById('registerStatus');
     const tutorial = document.getElementById('tutorial');
@@ -665,7 +681,7 @@
       }
     }
     
-    async function getOrCreateUser(username, userId = null) {
+    async function getOrCreateUser(username, password = null, userId = null) {
       try {
         // First check if username is available (unless updating existing user)
         if (!userId) {
@@ -675,10 +691,15 @@
           }
         }
         
+        const requestBody = { username, userId };
+        if (password) {
+          requestBody.password = password;
+        }
+        
         const response = await fetch(`${API_BASE_URL}/api/user`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, userId }),
+          body: JSON.stringify(requestBody),
         });
         
         // Check response status for conflicts
@@ -1271,6 +1292,9 @@
       // Registration handlers
       registerBtn.addEventListener('click', async () => {
         const username = registerUsernameInput.value.trim();
+        const password = registerPasswordInput.value;
+        const confirmPassword = registerConfirmPasswordInput.value;
+        
         if (!username) {
           registerStatus.textContent = 'Please enter a username';
           registerStatus.style.color = '#ef4444';
@@ -1291,13 +1315,28 @@
           registerStatus.style.color = '#ef4444';
           return;
         }
+        if (!password) {
+          registerStatus.textContent = 'Please enter a password';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        if (password.length < 6) {
+          registerStatus.textContent = 'Password must be at least 6 characters';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        if (password !== confirmPassword) {
+          registerStatus.textContent = 'Passwords do not match';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
         
         registerBtn.disabled = true;
         registerBtn.textContent = 'Creating account...';
         registerStatus.textContent = '';
         
         try {
-          const user = await getOrCreateUser(username);
+          const user = await getOrCreateUser(username, password);
           if (user) {
             currentUser = user;
             updateUserBadge();
@@ -1328,6 +1367,18 @@
       });
       
       registerUsernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          registerPasswordInput.focus();
+        }
+      });
+      
+      registerPasswordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          registerConfirmPasswordInput.focus();
+        }
+      });
+      
+      registerConfirmPasswordInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
           registerBtn.click();
         }
@@ -1408,7 +1459,7 @@
          saveScoreBtn.disabled = true;
          saveScoreBtn.textContent = 'Saving...';
          try {
-           const user = await getOrCreateUser(username, currentUser?.id);
+           const user = await getOrCreateUser(username, null, currentUser?.id);
            if (user) {
              currentUser = user;
              updateUserBadge();
@@ -1502,6 +1553,8 @@
       // Show registration modal
       registerModal.style.display = 'flex';
       registerUsernameInput.value = '';
+      registerPasswordInput.value = '';
+      registerConfirmPasswordInput.value = '';
       registerStatus.textContent = '';
       registerUsernameInput.focus();
       
@@ -1526,6 +1579,10 @@
       } else {
         // No user, show registration first
         registerModal.style.display = 'flex';
+        registerUsernameInput.value = '';
+        registerPasswordInput.value = '';
+        registerConfirmPasswordInput.value = '';
+        registerStatus.textContent = '';
         registerUsernameInput.focus();
       }
     }
