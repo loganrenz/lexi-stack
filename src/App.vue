@@ -35,6 +35,15 @@
         <svg class="path-layer" ref="pathLayerRef"></svg>
         <div class="grid" ref="gridRef"></div>
       </div>
+      <button 
+        v-if="canTriggerEarlyRow"
+        @click="triggerEarlyRow"
+        class="early-row-btn"
+        :class="{ 'pulsing': canTriggerEarlyRow }"
+      >
+        Add Row Early<br>
+        <span class="bonus-preview">+{{ earlyRowBonusPoints }} pts</span>
+      </button>
     </div>
 
     <div class="floating-word" :class="{ show: showFloatingWord }" :style="floatingWordStyle">
@@ -82,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as THREE from 'three'
 
 const rows = 10
@@ -446,12 +455,27 @@ function updateFloatingWord() {
   }
 }
 
-function addRow() {
+function addRow(isEarly = false) {
   const topHasTiles = grid[0].some(Boolean)
   if (topHasTiles) {
     endGame()
     return
   }
+  
+  let scoreBonus = 0
+  let timeBonus = 0
+  
+  if (isEarly) {
+    const remainingTime = rowTimer.value
+    scoreBonus = Math.round(remainingTime * 10)
+    timeBonus = Math.min(5, Math.round(remainingTime * 0.5))
+    
+    score.value += scoreBonus
+    timeLeft.value += timeBonus
+    
+    addToast(`Early row! +${scoreBonus} pts, +${timeBonus.toFixed(1)}s`, 'success')
+  }
+  
   for (let r = 0; r < rows - 1; r++) {
     grid[r] = grid[r + 1]
   }
@@ -540,6 +564,21 @@ function pauseGame() {
 
 function resetGame() {
   startGame()
+}
+
+const canTriggerEarlyRow = computed(() => {
+  return running && !paused.value && rowTimer.value > 1.5
+})
+
+const earlyRowBonusPoints = computed(() => {
+  if (!canTriggerEarlyRow.value) return 0
+  return Math.round(rowTimer.value * 10)
+})
+
+function triggerEarlyRow() {
+  if (!canTriggerEarlyRow.value) return
+  if (rowTimer.value <= 1.5) return
+  addRow(true)
 }
 
 function attachEvents() {
