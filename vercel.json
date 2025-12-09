@@ -3,6 +3,7 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "framework": null,
+  "installCommand": null,
   "rewrites": [
     {
       "source": "/(.*)",
