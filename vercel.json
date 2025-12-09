@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "buildCommand": null,
+  "buildCommand": "echo 'No build needed'",
   "outputDirectory": ".",
   "framework": null,
-  "installCommand": null,
+  "installCommand": "echo 'No install needed'",
   "rewrites": [
     {
       "source": "/(.*)",
