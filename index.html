@@ -504,7 +504,10 @@
 
   <div class="overlay" id="settingsModal" style="display:none;">
     <div class="modal">
-      <h2>Account Management</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="margin: 0;">Account Management</h2>
+        <button id="settingsLogoutBtn" class="danger" style="padding: 8px 16px; font-size: 0.85rem;">Log Out</button>
+      </div>
       <form id="settingsForm" style="margin-bottom: 12px;">
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-size: 0.9rem; color: #cbd5e1; font-weight: 600;">Username</label>
@@ -586,12 +589,9 @@
         
         <div id="settingsStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
       </form>
-      <div class="modal-actions" style="display: flex; gap: 8px; flex-direction: column;">
-        <div style="display: flex; gap: 8px;">
-          <button type="submit" form="settingsForm" class="primary" id="settingsSaveBtn" style="flex: 1;">Save Changes</button>
-          <button id="settingsCancelBtn" style="flex: 1;">Close</button>
-        </div>
-        <button id="settingsLogoutBtn" class="danger" style="width: 100%; margin-top: 8px;">Log Out</button>
+      <div class="modal-actions" style="display: flex; gap: 8px;">
+        <button type="submit" form="settingsForm" class="primary" id="settingsSaveBtn" style="flex: 1;">Save Changes</button>
+        <button id="settingsCancelBtn" style="flex: 1;">Close</button>
       </div>
     </div>
   </div>
