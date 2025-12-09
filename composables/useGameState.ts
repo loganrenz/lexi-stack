@@ -57,6 +57,10 @@ export const useGameState = () => {
   const level = ref(1)
   const isGameOver = ref(false)
   const longestWord = ref('')
+  const potentialScore = computed(() => {
+    if (selectedTiles.value.length < 2) return 0
+    return scoreWord(selectedTiles.value.map(t => t.letter), comboMultiplier.value)
+  })
   
   // Combo decay timer
   const lastValidWordTime = ref(0)
@@ -169,6 +173,14 @@ export const useGameState = () => {
     })
 
     return { success: true }
+  }
+
+  const undoLastSelection = () => {
+    if (!selectedTiles.value.length) return
+    selectedTiles.value.pop()
+    selectedTiles.value.forEach((tile, idx) => {
+      tile.index = idx
+    })
   }
 
   // Clear selection
@@ -318,6 +330,7 @@ export const useGameState = () => {
     level: readonly(level),
     isGameOver: readonly(isGameOver),
     longestWord: readonly(longestWord),
+    potentialScore,
     currentWord,
     gameState,
     
@@ -327,6 +340,7 @@ export const useGameState = () => {
     
     // Methods
     toggleTile,
+    undoLastSelection,
     clearSelection,
     submitWord,
     addNewRow,

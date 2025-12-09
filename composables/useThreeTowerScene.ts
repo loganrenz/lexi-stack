@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { GridPosition } from '~/types'
 
 export interface TowerSceneOptions {
@@ -35,6 +36,7 @@ export const useThreeTowerScene = (
   let animationId: number | null = null
   let raycaster: THREE.Raycaster | null = null
   let pointer: THREE.Vector2 | null = null
+  let selectionPath: THREE.Mesh<THREE.TubeGeometry, THREE.MeshStandardMaterial> | null = null
 
   const tileMeshes = new Map<string, TileMesh>()
   const selectedMeshes = new Set<TileMesh>()
@@ -48,6 +50,8 @@ export const useThreeTowerScene = (
   const getTileY = (row: number) => boardOriginY + row * (tileSize + tileGap)
   const getTileX = (col: number) => (col - (gridCols - 1) / 2) * (tileSize + tileGap)
 
+  const highValueLetters = new Set(['Q', 'Z', 'X', 'J'])
+
   // Create letter texture
   const createLetterTexture = (letter: string): THREE.CanvasTexture => {
     const size = 256
@@ -57,15 +61,15 @@ export const useThreeTowerScene = (
     const ctx = canvas.getContext('2d')!
 
     const gradient = ctx.createLinearGradient(0, 0, size, size)
-    gradient.addColorStop(0, '#0b1224')
-    gradient.addColorStop(1, '#111b33')
+    gradient.addColorStop(0, '#101827')
+    gradient.addColorStop(1, '#0b1224')
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, size, size)
 
-    ctx.fillStyle = '#ffffff'
-    ctx.shadowColor = '#000'
-    ctx.shadowBlur = 6
-    ctx.font = 'bold 148px Inter, -apple-system, Arial, sans-serif'
+    ctx.fillStyle = '#f8fafc'
+    ctx.shadowColor = '#0ea5e9'
+    ctx.shadowBlur = 12
+    ctx.font = 'bold 160px Inter, -apple-system, Arial, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(letter, size / 2, size / 2)
@@ -77,16 +81,17 @@ export const useThreeTowerScene = (
 
   // Create tile mesh
   const createTileMesh = (letter: string, row: number, col: number): TileMesh => {
-    const geometry = new THREE.BoxGeometry(tileSize, tileSize, tileSize * 0.5)
+    const geometry = new RoundedBoxGeometry(tileSize, tileSize, tileSize * 0.5, 6, 0.1)
     const texture = createLetterTexture(letter)
     const material = new THREE.MeshStandardMaterial({
-      color: '#9fb9ff',
-      emissive: '#0ea5e9',
-      emissiveIntensity: 0.35,
-      metalness: 0.2,
-      roughness: 0.35,
+      color: highValueLetters.has(letter) ? '#f59e0b' : '#b9c8ff',
+      emissive: highValueLetters.has(letter) ? '#fbbf24' : '#22d3ee',
+      emissiveIntensity: highValueLetters.has(letter) ? 0.55 : 0.35,
+      metalness: 0.35,
+      roughness: 0.32,
       map: texture,
-      transparent: true
+      transparent: true,
+      opacity: 0.96
     })
 
     const mesh = new THREE.Mesh(geometry, material) as TileMesh
@@ -131,10 +136,10 @@ export const useThreeTowerScene = (
     renderer.outputColorSpace = THREE.SRGBColorSpace
 
     // Lighting
-    const ambient = new THREE.AmbientLight('#ffffff', 0.5)
+    const ambient = new THREE.AmbientLight('#f8fafc', 0.65)
     scene.add(ambient)
 
-    const dir1 = new THREE.DirectionalLight('#87d1ff', 0.9)
+    const dir1 = new THREE.DirectionalLight('#87d1ff', 1)
     dir1.position.set(4, 8, 6)
     if (enableShadows) {
       dir1.castShadow = true
@@ -145,18 +150,18 @@ export const useThreeTowerScene = (
     }
     scene.add(dir1)
 
-    const dir2 = new THREE.DirectionalLight('#ffd787', 0.3)
-    dir2.position.set(-4, 4, -6)
+    const dir2 = new THREE.DirectionalLight('#ffd787', 0.45)
+    dir2.position.set(-5, 6, -5)
     scene.add(dir2)
 
     // Background plane
-    const planeGeo = new THREE.PlaneGeometry(boardWidth * 1.2, boardHeight * 1.4)
+    const planeGeo = new THREE.PlaneGeometry(boardWidth * 1.4, boardHeight * 1.6)
     const planeMat = new THREE.MeshStandardMaterial({
-      color: '#0f172a',
-      metalness: 0.1,
-      roughness: 0.8,
+      color: '#0b1224',
+      metalness: 0.08,
+      roughness: 0.9,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.75
     })
     const base = new THREE.Mesh(planeGeo, planeMat)
     base.position.set(0, boardOriginY + boardHeight / 2, -1)
@@ -164,7 +169,7 @@ export const useThreeTowerScene = (
     scene.add(base)
 
     // Danger line indicator
-    const dangerLineGeo = new THREE.PlaneGeometry(boardWidth * 1.2, 0.1)
+    const dangerLineGeo = new THREE.PlaneGeometry(boardWidth * 1.3, 0.1)
     const dangerLineMat = new THREE.MeshBasicMaterial({
       color: '#f97316',
       transparent: true,
@@ -196,6 +201,14 @@ export const useThreeTowerScene = (
       for (const mesh of tileMeshes.values()) {
         const targetY = getTileY(mesh.userData.row)
         mesh.position.y += (targetY - mesh.position.y) * Math.min(12 * delta, 1)
+        mesh.rotation.z = Math.sin(clock.elapsedTime * 0.45 + mesh.userData.col * 0.18) * 0.04
+
+        if (selectedMeshes.has(mesh)) {
+          const pulse = 1 + Math.sin(clock.elapsedTime * 6) * 0.05
+          mesh.scale.setScalar(1.08 * pulse)
+        } else {
+          mesh.scale.setScalar(1)
+        }
       }
 
       // Animate cleared tiles
@@ -256,15 +269,49 @@ export const useThreeTowerScene = (
     }
   }
 
+  const updateSelectionPath = (positions: GridPosition[]) => {
+    if (!scene) return
+
+    if (selectionPath) {
+      scene.remove(selectionPath)
+      selectionPath.geometry.dispose()
+      selectionPath.material.dispose()
+      selectionPath = null
+    }
+
+    if (!positions.length) return
+
+    const points = positions.map(pos => new THREE.Vector3(
+      getTileX(pos.col),
+      getTileY(pos.row),
+      tileSize * 0.45
+    ))
+
+    const curve = new THREE.CatmullRomCurve3(points)
+    const geometry = new THREE.TubeGeometry(curve, Math.max(12, positions.length * 4), 0.06, 8, false)
+    const material = new THREE.MeshStandardMaterial({
+      color: '#22d3ee',
+      emissive: '#22d3ee',
+      emissiveIntensity: 0.8,
+      roughness: 0.2,
+      metalness: 0.4,
+      transparent: true,
+      opacity: 0.7
+    })
+
+    selectionPath = new THREE.Mesh(geometry, material)
+    selectionPath.renderOrder = 2
+    scene.add(selectionPath)
+  }
+
   // Highlight selected tiles
   const highlightTiles = (positions: GridPosition[]) => {
     // Reset all
     for (const mesh of selectedMeshes) {
       const material = mesh.material as THREE.MeshStandardMaterial
-      material.color.set('#9fb9ff')
-      material.emissive.set('#0ea5e9')
-      material.emissiveIntensity = 0.35
-      mesh.scale.setScalar(1)
+      material.color.set(highValueLetters.has(mesh.userData.letter) ? '#f59e0b' : '#b9c8ff')
+      material.emissive.set(highValueLetters.has(mesh.userData.letter) ? '#fbbf24' : '#22d3ee')
+      material.emissiveIntensity = highValueLetters.has(mesh.userData.letter) ? 0.55 : 0.35
     }
     selectedMeshes.clear()
 
@@ -277,10 +324,11 @@ export const useThreeTowerScene = (
         material.color.set('#67e8f9')
         material.emissive.set('#22d3ee')
         material.emissiveIntensity = 0.9
-        mesh.scale.setScalar(1.1)
         selectedMeshes.add(mesh)
       }
     }
+
+    updateSelectionPath(positions)
   }
 
   // Flash tiles (error feedback)
@@ -366,6 +414,13 @@ export const useThreeTowerScene = (
       tileMeshes.clear()
       selectedMeshes.clear()
       clearedMeshes.clear()
+
+      if (selectionPath) {
+        selectionPath.geometry.dispose()
+        selectionPath.material.dispose()
+        scene.remove(selectionPath)
+        selectionPath = null
+      }
     }
 
     if (renderer) {
