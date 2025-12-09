@@ -60,8 +60,15 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!.*\\.(png|jpg|jpeg|webp|svg|ico|json|txt|js|css|woff|woff2|ttf|eot|sw.js|manifest.json)).*)",
-      "destination": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "text/html"
+        }
+      ]
     }
   ]
 }

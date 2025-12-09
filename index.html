@@ -2608,6 +2608,21 @@
     }
 
     window.addEventListener('resize', drawPath);
+    
+    // Set dynamic OG and Twitter meta tags for Vercel deployments
+    (function() {
+      const baseUrl = window.location.origin;
+      const ogUrl = document.getElementById('og-url');
+      const ogImage = document.getElementById('og-image');
+      const twitterUrl = document.getElementById('twitter-url');
+      const twitterImage = document.getElementById('twitter-image');
+      
+      if (ogUrl) ogUrl.setAttribute('content', baseUrl + '/');
+      if (ogImage) ogImage.setAttribute('content', baseUrl + '/og-image-facebook.png');
+      if (twitterUrl) twitterUrl.setAttribute('content', baseUrl + '/');
+      if (twitterImage) twitterImage.setAttribute('content', baseUrl + '/og-image-twitter.png');
+    })();
+    
     init();
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
