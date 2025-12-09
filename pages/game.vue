@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
-    <div class="mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-6">
+    <div class="mx-auto max-w-6xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6">
       <!-- Top Bar -->
       <div class="flex flex-wrap items-center justify-between gap-3 sm:gap-4 mb-3">
         <div class="flex items-center gap-3">
@@ -60,7 +60,9 @@
       </div>
 
       <!-- Game Canvas -->
-      <div class="relative h-[60vh] min-h-[400px] sm:min-h-[500px] rounded-2xl border border-white/10 bg-gradient-to-b from-slate-950 to-slate-900 overflow-hidden shadow-2xl mb-4">
+      <div
+        class="relative h-[52vh] min-h-[320px] sm:h-[60vh] sm:min-h-[500px] rounded-2xl border border-white/10 bg-gradient-to-b from-slate-950 to-slate-900 overflow-hidden shadow-2xl mb-4"
+      >
         <canvas ref="canvasRef" class="h-full w-full touch-none" :class="{ 'pointer-events-none': isGameOver }"></canvas>
 
         <!-- Global Timer Bar -->
@@ -142,44 +144,47 @@
 
       <!-- Word Input Panel -->
       <UCard
-        class="bg-slate-900/80 border-white/10 backdrop-blur-md shadow-2xl fixed bottom-3 left-4 right-4 sm:left-6 sm:right-6"
+        class="bg-slate-900/90 border-white/10 backdrop-blur-md shadow-2xl fixed bottom-0 left-0 right-0 sm:bottom-3 sm:left-6 sm:right-6 sm:rounded-2xl"
         style="padding-bottom: env(safe-area-inset-bottom)"
       >
-        <div class="flex flex-col gap-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-slate-300">
+        <div class="flex flex-col gap-3 px-4 py-3 sm:px-6 sm:py-4 max-w-5xl mx-auto">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-slate-200">
               <span class="i-heroicons-sparkles text-emerald-300"></span>
               Current Word
             </div>
-            <div class="flex items-center gap-3 text-sm text-slate-200">
+            <div class="flex items-center gap-3 text-sm sm:text-base text-slate-100">
               <span class="text-emerald-300 font-semibold" v-if="potentialScore">Potential +{{ potentialScore }} pts</span>
-              <span class="text-slate-400">{{ cursorLabel }}</span>
+              <span class="text-slate-300 font-medium">{{ cursorLabel }}</span>
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2" :class="{ 'word-shake': statusMessageType === 'error' && statusMessage }">
-            <TransitionGroup name="letter" tag="div" class="flex flex-wrap gap-2 items-center">
+          <div
+            class="flex flex-wrap items-center gap-2 sm:gap-3"
+            :class="{ 'word-shake': statusMessageType === 'error' && statusMessage }"
+          >
+            <TransitionGroup name="letter" tag="div" class="flex flex-wrap gap-2 sm:gap-3 items-center">
               <template v-for="(tile, index) in selectedTiles" :key="`${tile.position.row}-${tile.position.col}-${index}`">
                 <span
-                  class="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-100 font-semibold text-xl shadow-lg shadow-emerald-500/10"
+                  class="px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-100 font-semibold text-xl sm:text-2xl shadow-lg shadow-emerald-500/10"
                 >
                   {{ tile.letter }}
                 </span>
-                <div v-if="index !== selectedTiles.length - 1" class="w-6 h-[2px] bg-emerald-400/40 rounded-full"></div>
+                <div v-if="index !== selectedTiles.length - 1" class="w-6 sm:w-8 h-[2px] bg-emerald-400/40 rounded-full"></div>
               </template>
             </TransitionGroup>
-            <span v-if="!selectedTiles.length" class="text-sm text-slate-400 italic">
+            <span v-if="!selectedTiles.length" class="text-base sm:text-lg text-slate-300 italic">
               Tap connected letters to build a word
             </span>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <UButton
               variant="ghost"
               icon="i-heroicons-arrow-uturn-left"
               :disabled="!selectedTiles.length"
               @click="undoLastSelection"
-              class="min-h-[48px]"
+              class="min-h-[44px] sm:min-h-[48px] flex-1 sm:flex-none"
             >
               Undo
             </UButton>
@@ -188,7 +193,7 @@
               icon="i-heroicons-x-mark"
               :disabled="!selectedTiles.length"
               @click="clearSelection"
-              class="min-h-[48px]"
+              class="min-h-[44px] sm:min-h-[48px] flex-1 sm:flex-none"
             >
               Clear
             </UButton>
@@ -199,14 +204,14 @@
                 :disabled="!canSubmit || isGameOver || isSubmitting"
                 :loading="isSubmitting"
                 @click="handleSubmit"
-                class="min-h-[48px] px-6 flex-1 sm:flex-none"
+                class="min-h-[48px] px-5 sm:px-6 flex-1"
               >
                 Submit word
               </UButton>
             </UTooltip>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3 text-sm">
+          <div class="flex flex-wrap items-center gap-3 text-sm sm:text-base">
             <Transition
               enter-active-class="transition duration-200 ease-out"
               enter-from-class="opacity-0 translate-y-2"
@@ -223,11 +228,11 @@
                 {{ statusMessage }}
               </p>
             </Transition>
-            <div v-if="isDictionaryLoading" class="flex items-center gap-2 text-xs text-slate-300">
+            <div v-if="isDictionaryLoading" class="flex items-center gap-2 text-xs sm:text-sm text-slate-300">
               <span class="i-heroicons-arrow-path animate-spin"></span>
               Loading dictionary...
             </div>
-            <div v-else-if="dictionaryFallback" class="flex items-center gap-2 text-xs text-amber-300 font-semibold">
+            <div v-else-if="dictionaryFallback" class="flex items-center gap-2 text-xs sm:text-sm text-amber-300 font-semibold">
               <span class="i-heroicons-exclamation-triangle"></span>
               Limited dictionary loaded; some words may be missing.
             </div>
