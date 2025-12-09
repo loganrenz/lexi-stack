@@ -180,8 +180,8 @@
       position: absolute;
       inset: 8px;
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      grid-template-rows: repeat(10, 1fr);
+      grid-template-columns: repeat(var(--cols, 6), 1fr);
+      grid-template-rows: repeat(var(--rows, 10), 1fr);
       gap: 6px;
       touch-action: none;
     }
