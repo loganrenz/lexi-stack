@@ -214,8 +214,14 @@
       height: 100%;
       pointer-events: none;
     }
+    .tile.value-1 { border-color: rgba(226, 232, 240, 0.6); }
+    .tile.value-2 { border-color: rgba(165, 243, 252, 0.7); }
+    .tile.value-3 { border-color: rgba(134, 239, 172, 0.7); }
+    .tile.value-4 { border-color: rgba(147, 197, 253, 0.7); }
+    .tile.value-5 { border-color: rgba(251, 191, 36, 0.8); }
+    .tile.value-8 { border-color: rgba(249, 115, 22, 0.85); }
+    .tile.value-10 { border-color: rgba(251, 146, 60, 0.95); }
     .tile.high { 
-      border-color: rgba(251, 146, 60, 0.95); 
       box-shadow: 0 8px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 12px rgba(251, 146, 60, 0.3);
     }
     .tile.selected {
@@ -223,8 +229,25 @@
       box-shadow: 0 12px 24px rgba(34, 211, 238, 0.3), inset 0 0 0 2px rgba(34, 211, 238, 0.8), 0 0 16px rgba(34, 211, 238, 0.4);
       border-color: rgba(34, 211, 238, 1);
     }
-    .tile.invalid { animation: flash 0.5s ease; }
-    @keyframes flash { 0%,100%{background: linear-gradient(160deg,#1e293b,#0f172a);} 50%{background: linear-gradient(160deg,#991b1b,#7f1d1d);} }
+    .tile.invalid { 
+      animation: shake-and-flash 0.6s ease;
+      border-color: rgba(239, 68, 68, 1) !important;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.4), inset 0 0 0 2px rgba(239, 68, 68, 0.8), 0 0 16px rgba(239, 68, 68, 0.6) !important;
+    }
+    @keyframes shake-and-flash { 
+      0%, 100% {
+        transform: translateX(0);
+        background: linear-gradient(160deg,#1e293b,#0f172a);
+      }
+      10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-4px);
+        background: linear-gradient(160deg,#991b1b,#7f1d1d);
+      }
+      20%, 40%, 60%, 80% {
+        transform: translateX(4px);
+        background: linear-gradient(160deg,#991b1b,#7f1d1d);
+      }
+    }
 
     .path-layer { position: absolute; inset: 8px; pointer-events: none; }
 
@@ -242,9 +265,28 @@
       flex-direction: column;
       min-width: 120px;
       z-index: 30;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .floating-word.warning {
+      border-color: rgba(239, 68, 68, 0.6);
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.2);
+      animation: pulse-warning 1s ease-in-out infinite;
+    }
+    @keyframes pulse-warning {
+      0%, 100% { border-color: rgba(239, 68, 68, 0.6); }
+      50% { border-color: rgba(239, 68, 68, 0.9); }
     }
     .floating-word .word { font-weight: 900; letter-spacing: 0.08em; }
     .floating-word .points { font-size: 0.85rem; color: #a5f3fc; }
+    .floating-word.warning .points { color: #fca5a5; }
+    .floating-word.shake {
+      animation: shake-floating 0.6s ease;
+    }
+    @keyframes shake-floating {
+      0%, 100% { transform: translate(-50%, -150%) translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translate(-50%, -150%) translateX(-6px); }
+      20%, 40%, 60%, 80% { transform: translate(-50%, -150%) translateX(6px); }
+    }
 
     .combo { color: var(--emerald); }
     .time-positive { color: var(--cyan); }
@@ -432,6 +474,31 @@
     };
     const letterValues = {A:1,E:1,I:1,L:1,N:1,O:1,R:1,S:1,T:1,U:1,D:2,G:2,B:3,C:3,M:3,P:3,F:4,H:4,V:4,W:4,Y:4,K:5,J:8,X:8,Q:10,Z:10};
     const highLetters = new Set(['Q','Z','X','J']);
+    
+    // Color mapping based on letter values
+    function getLetterColor(letter) {
+      const value = letterValues[letter] || 1;
+      if (value === 1) return '#e2e8f0'; // Light gray for common letters
+      if (value === 2) return '#a5f3fc'; // Cyan for 2-point letters
+      if (value === 3) return '#86efac'; // Light green for 3-point letters
+      if (value === 4) return '#93c5fd'; // Light blue for 4-point letters
+      if (value === 5) return '#fbbf24'; // Amber for 5-point letters
+      if (value === 8) return '#f97316'; // Orange for 8-point letters
+      if (value === 10) return '#fb923c'; // Bright orange for 10-point letters (Q, Z)
+      return '#e2e8f0';
+    }
+    
+    function getLetterGlowColor(letter) {
+      const value = letterValues[letter] || 1;
+      if (value === 1) return 'rgba(226, 232, 240, 0.3)';
+      if (value === 2) return 'rgba(165, 243, 252, 0.4)';
+      if (value === 3) return 'rgba(134, 239, 172, 0.4)';
+      if (value === 4) return 'rgba(147, 197, 253, 0.4)';
+      if (value === 5) return 'rgba(251, 191, 36, 0.5)';
+      if (value === 8) return 'rgba(249, 115, 22, 0.5)';
+      if (value === 10) return 'rgba(251, 146, 60, 0.6)';
+      return 'rgba(226, 232, 240, 0.3)';
+    }
     const fallbackWords = ['STACK','WORD','GAME','CODE','DRAG','MOVE','TIME','PAUSE','LEVEL','POINT','GRID','ROWS','TILE','RAISE','QUIZ','JAZZ'];
 
     const gridEl = document.getElementById('grid');
@@ -510,10 +577,11 @@
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Better color with slight glow effect
-      const baseColor = isHigh ? '#ffa94d' : '#f1f5f9';
+      // Use color based on letter value
+      const baseColor = getLetterColor(letter);
+      const glowColor = getLetterGlowColor(letter);
       ctx.fillStyle = baseColor;
-      ctx.shadowColor = isHigh ? 'rgba(251, 146, 60, 0.5)' : 'rgba(226, 232, 240, 0.3)';
+      ctx.shadowColor = glowColor;
       ctx.shadowBlur = 4;
       
       // Use a refined font with better proportions - taller and more elegant
@@ -559,6 +627,9 @@
             div.className = 'tile';
             const isHigh = highLetters.has(tile.letter);
             const isSelected = selection.some(s => s.row === r && s.col === c);
+            const letterValue = letterValues[tile.letter] || 1;
+            // Add value class for border color
+            div.classList.add(`value-${letterValue}`);
             if (isHigh) div.classList.add('high');
             if (isSelected) div.classList.add('selected');
             renderTileWithThreeJS(div, tile.letter, isHigh, isSelected);
@@ -604,18 +675,43 @@
       setTimeout(() => toast.remove(), 2200);
     }
 
-    function handleSelection(row, col) {
+    let lastSelectionTime = 0;
+    const SELECTION_COOLDOWN = 50; // ms between selections to prevent accidental picks
+    
+    function handleSelection(row, col, e) {
       const tile = grid[row][col];
       if (!tile) return;
       if (!dragging) return;
+      
+      // Cooldown to prevent rapid accidental selections
+      const now = performance.now();
+      if (now - lastSelectionTime < SELECTION_COOLDOWN) return;
+      
       const already = selection.find(s => s.row === row && s.col === col);
       if (already) return;
+      
       if (selection.length) {
         const last = selection[selection.length - 1];
         const rDiff = Math.abs(last.row - row);
         const cDiff = Math.abs(last.col - col);
         if (rDiff > 1 || cDiff > 1) return;
+        
+        // Require pointer to be more centered on tile (at least 30% from edges)
+        if (e) {
+          const cell = gridEl.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+          if (cell) {
+            const rect = cell.getBoundingClientRect();
+            const relativeX = (e.clientX - rect.left) / rect.width;
+            const relativeY = (e.clientY - rect.top) / rect.height;
+            // Only allow selection if pointer is in center 40% of tile (30% margin on each side)
+            if (relativeX < 0.3 || relativeX > 0.7 || relativeY < 0.3 || relativeY > 0.7) {
+              return;
+            }
+          }
+        }
       }
+      
+      lastSelectionTime = now;
       selection.push({ row, col, letter: tile.letter });
       updateFloatingWord();
       renderGrid();
@@ -633,15 +729,18 @@
     }
 
     function validateWord(word) {
-      if (word.length < 2 || word.length > 8) return false;
+      if (word.length < 3 || word.length > 8) return false;
       if (!/^[A-Z]+$/.test(word)) return false;
       return dictionary.has(word);
     }
 
     function submitSelection() {
       const word = selectionWord();
-      hideFloatingWord();
-      if (word.length < 2) {
+      if (word.length < 3) {
+        if (word.length === 2) {
+          addToast('Need at least 3 letters to form a word', 'error');
+        }
+        hideFloatingWord();
         clearSelection();
         return;
       }
@@ -649,10 +748,20 @@
         combo = 1.0;
         updateCombo();
         flashSelection();
+        // Shake the floating word
+        floatingWord.classList.add('shake');
+        setTimeout(() => {
+          floatingWord.classList.remove('shake');
+          hideFloatingWord();
+        }, 600);
         addToast(`${word} is not a valid word`, 'error');
-        clearSelection();
+        // Clear selection after shake animation completes
+        setTimeout(() => {
+          clearSelection();
+        }, 600);
         return;
       }
+      hideFloatingWord();
       const gained = wordScore(word);
       score += gained;
       longestWord = word.length > longestWord.length ? word : longestWord;
@@ -673,7 +782,13 @@
     function flashSelection() {
       selection.forEach(sel => {
         const tileEl = gridEl.querySelector(`.cell[data-row="${sel.row}"][data-col="${sel.col}"] .tile`);
-        if (tileEl) tileEl.classList.add('invalid');
+        if (tileEl) {
+          tileEl.classList.add('invalid');
+          // Remove invalid class after animation completes
+          setTimeout(() => {
+            tileEl.classList.remove('invalid');
+          }, 600);
+        }
       });
     }
 
@@ -713,10 +828,15 @@
     function updateFloatingWord(pos) {
       const word = selectionWord();
       floatingText.textContent = word;
-      if (word.length >= 2) {
+      if (word.length >= 3) {
         floatingPoints.textContent = `+${wordScore(word)} pts`;
+        floatingWord.classList.remove('warning');
+      } else if (word.length === 2) {
+        floatingPoints.textContent = 'Need 1 more letter';
+        floatingWord.classList.add('warning');
       } else {
-        floatingPoints.textContent = 'Need 2+ letters';
+        floatingPoints.textContent = 'Need 3+ letters';
+        floatingWord.classList.remove('warning');
       }
     }
 
@@ -855,7 +975,7 @@
         if (!cell) return;
         const row = Number(cell.dataset.row);
         const col = Number(cell.dataset.col);
-        handleSelection(row, col);
+        handleSelection(row, col, e);
       });
 
       window.addEventListener('pointerup', e => {
