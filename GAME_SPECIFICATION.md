@@ -259,3 +259,4 @@ LexiStack is a real-time word puzzle game where players form words by selecting 
 - Visual indication of paused state
 - Resume continues from paused state
 
+
