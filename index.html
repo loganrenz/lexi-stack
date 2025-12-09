@@ -632,21 +632,51 @@
       return null;
     }
     
+    async function checkUsernameAvailability(username) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user/check?username=${encodeURIComponent(username)}`);
+        const data = await response.json();
+        return data.available !== false; // Available if not explicitly false
+      } catch (error) {
+        console.error('Error checking username:', error);
+        // If API fails, assume available (will be checked again on create)
+        return true;
+      }
+    }
+    
     async function getOrCreateUser(username, userId = null) {
       try {
+        // First check if username is available (unless updating existing user)
+        if (!userId) {
+          const available = await checkUsernameAvailability(username);
+          if (!available) {
+            throw new Error('Username already taken');
+          }
+        }
+        
         const response = await fetch(`${API_BASE_URL}/api/user`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, userId }),
         });
         const data = await response.json();
+        
+        // Check if username conflict error
+        if (data.error && (data.error.includes('taken') || data.error.includes('exists') || data.error.includes('duplicate'))) {
+          throw new Error('Username already taken');
+        }
+        
         if (data.user) {
           saveUserToStorage(data.user);
         }
         return data.user;
       } catch (error) {
         console.error('Error creating user:', error);
-        // If API fails, create a local-only user
+        // Re-throw username taken errors
+        if (error.message === 'Username already taken') {
+          throw error;
+        }
+        // If API fails for other reasons, create a local-only user
         const localUser = {
           id: userId || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           username: username,
@@ -1215,20 +1245,32 @@
         registerBtn.textContent = 'Creating account...';
         registerStatus.textContent = '';
         
-        const user = await getOrCreateUser(username);
-        if (user) {
-          currentUser = user;
-          updateUserBadge();
-          registerModal.style.display = 'none';
-          // Show tutorial if not seen before
-          if (!localStorage.getItem('lexistack_tutorial_seen')) {
-            tutorial.style.display = 'flex';
+        try {
+          const user = await getOrCreateUser(username);
+          if (user) {
+            currentUser = user;
+            updateUserBadge();
+            registerModal.style.display = 'none';
+            // Show tutorial if not seen before
+            if (!localStorage.getItem('lexistack_tutorial_seen')) {
+              tutorial.style.display = 'flex';
+            } else {
+              clearAndReset();
+            }
           } else {
-            clearAndReset();
+            registerStatus.textContent = 'Failed to create account. Please try again.';
+            registerStatus.style.color = '#ef4444';
+            registerBtn.disabled = false;
+            registerBtn.textContent = 'Start Playing';
           }
-        } else {
-          registerStatus.textContent = 'Failed to create account. Please try again.';
-          registerStatus.style.color = '#ef4444';
+        } catch (error) {
+          if (error.message === 'Username already taken') {
+            registerStatus.textContent = 'Username is already taken. Please choose another.';
+            registerStatus.style.color = '#ef4444';
+          } else {
+            registerStatus.textContent = 'Failed to create account. Please try again.';
+            registerStatus.style.color = '#ef4444';
+          }
           registerBtn.disabled = false;
           registerBtn.textContent = 'Start Playing';
         }
@@ -1240,8 +1282,52 @@
         }
       });
       
-      registerUsernameInput.addEventListener('input', () => {
+      // Real-time username availability checking (debounced)
+      let usernameCheckTimeout = null;
+      registerUsernameInput.addEventListener('input', async () => {
         registerStatus.textContent = '';
+        
+        const username = registerUsernameInput.value.trim();
+        
+        // Clear previous timeout
+        if (usernameCheckTimeout) {
+          clearTimeout(usernameCheckTimeout);
+        }
+        
+        // Basic validation first
+        if (!username) {
+          return;
+        }
+        if (username.length < 2) {
+          registerStatus.textContent = 'Username must be at least 2 characters';
+          registerStatus.style.color = '#f59e0b';
+          return;
+        }
+        if (username.length > 20) {
+          registerStatus.textContent = 'Username must be 20 characters or less';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          registerStatus.textContent = 'Username can only contain letters, numbers, and underscores';
+          registerStatus.style.color = '#ef4444';
+          return;
+        }
+        
+        // Debounce the API call
+        usernameCheckTimeout = setTimeout(async () => {
+          registerStatus.textContent = 'Checking availability...';
+          registerStatus.style.color = '#94a3b8';
+          
+          const available = await checkUsernameAvailability(username);
+          if (available) {
+            registerStatus.textContent = '✓ Username available';
+            registerStatus.style.color = '#22c55e';
+          } else {
+            registerStatus.textContent = '✗ Username already taken';
+            registerStatus.style.color = '#ef4444';
+          }
+        }, 500); // Wait 500ms after user stops typing
       });
 
       startBtn.addEventListener('click', () => {
@@ -1268,31 +1354,41 @@
           addToast('Username must be 20 characters or less', 'error');
           return;
         }
-        saveScoreBtn.disabled = true;
-        saveScoreBtn.textContent = 'Saving...';
-         const user = await getOrCreateUser(username, currentUser?.id);
-         if (user) {
-           currentUser = user;
-           updateUserBadge();
-           userSection.style.display = 'none';
-           userStatus.textContent = `Playing as: ${user.username}`;
-           leaderboardBtn.style.display = 'inline-block';
-          // Submit score
-          const success = await submitScore(user.id, {
-            score,
-            combo: bestCombo,
-            longestWord,
-            level,
-            wordsPlayed,
-          });
-          if (success) {
-            addToast('Score saved!', 'success');
-          }
-        } else {
-          addToast('Failed to save. Please try again.', 'error');
-          saveScoreBtn.disabled = false;
-          saveScoreBtn.textContent = 'Save';
-        }
+         saveScoreBtn.disabled = true;
+         saveScoreBtn.textContent = 'Saving...';
+         try {
+           const user = await getOrCreateUser(username, currentUser?.id);
+           if (user) {
+             currentUser = user;
+             updateUserBadge();
+             userSection.style.display = 'none';
+             userStatus.textContent = `Playing as: ${user.username}`;
+             leaderboardBtn.style.display = 'inline-block';
+             // Submit score
+             const success = await submitScore(user.id, {
+               score,
+               combo: bestCombo,
+               longestWord,
+               level,
+               wordsPlayed,
+             });
+             if (success) {
+               addToast('Score saved!', 'success');
+             }
+           } else {
+             addToast('Failed to save. Please try again.', 'error');
+             saveScoreBtn.disabled = false;
+             saveScoreBtn.textContent = 'Save';
+           }
+         } catch (error) {
+           if (error.message === 'Username already taken') {
+             addToast('Username is already taken. Please choose another.', 'error');
+           } else {
+             addToast('Failed to save. Please try again.', 'error');
+           }
+           saveScoreBtn.disabled = false;
+           saveScoreBtn.textContent = 'Save';
+         }
       });
       
       usernameInput.addEventListener('keypress', (e) => {
