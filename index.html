@@ -457,10 +457,17 @@
       const ctx = canvas.getContext('2d');
       
       ctx.fillStyle = isHigh ? '#fb923c' : '#e2e8f0';
-      ctx.font = `bold ${size * 0.7}px 'Inter', system-ui, sans-serif`;
+      // Use a taller, skinnier font - increased size for height, reduced weight for skinnier look
+      ctx.font = `500 ${size * 0.9}px 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(letter, size / 2, size / 2);
+      
+      // Save context, apply transform to make letters taller and narrower
+      ctx.save();
+      ctx.translate(size / 2, size / 2);
+      ctx.scale(0.7, 1.2); // 0.7 width (skinnier), 1.2 height (taller)
+      ctx.fillText(letter, 0, 0);
+      ctx.restore();
       
       return canvas;
     }
