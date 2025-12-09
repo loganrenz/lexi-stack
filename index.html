@@ -1048,8 +1048,10 @@
 
     function createThreeJSText(letter, isHigh, isSelected) {
       const canvas = document.createElement('canvas');
-      const pixelRatio = Math.max(window.devicePixelRatio || 1, 2);
-      const size = 1024 * pixelRatio; // Higher resolution for better quality
+      // Reduce canvas size on mobile to prevent memory issues
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const pixelRatio = isMobile ? 1 : Math.max(window.devicePixelRatio || 1, 2);
+      const size = isMobile ? 256 : 512 * pixelRatio; // Much smaller on mobile
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
@@ -1095,11 +1097,29 @@
         return;
       }
       
-      // Create new canvas
-      const canvas = createThreeJSText(letter, isHigh, isSelected);
+      // Clean up old canvas properly before creating new one
       if (existingCanvas) {
+        const ctx = existingCanvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, existingCanvas.width, existingCanvas.height);
+        }
+        existingCanvas.width = 0;
+        existingCanvas.height = 0;
         existingCanvas.remove();
       }
+      
+      // Remove old cache entry if it exists
+      if (cached && cached.canvas) {
+        const oldCtx = cached.canvas.getContext('2d');
+        if (oldCtx) {
+          oldCtx.clearRect(0, 0, cached.canvas.width, cached.canvas.height);
+        }
+        cached.canvas.width = 0;
+        cached.canvas.height = 0;
+      }
+      
+      // Create new canvas
+      const canvas = createThreeJSText(letter, isHigh, isSelected);
       tileDiv.appendChild(canvas);
       
       // Cache the render info
@@ -1122,6 +1142,18 @@
       const needsFullRender = forceFullRender || tileElements.size === 0;
       
       if (needsFullRender) {
+        // Clean up all existing canvases before clearing
+        tileRenderers.forEach((value, tileId) => {
+          if (value.canvas) {
+            const ctx = value.canvas.getContext('2d');
+            if (ctx) {
+              ctx.clearRect(0, 0, value.canvas.width, value.canvas.height);
+            }
+            value.canvas.width = 0;
+            value.canvas.height = 0;
+          }
+        });
+        
         // Full render: clear and rebuild everything
         gridEl.innerHTML = '';
         tileRenderers.clear();
@@ -1343,11 +1375,31 @@
 
     function removeTiles() {
       selection.forEach(sel => {
+        const tileId = `${sel.row}-${sel.col}`;
+        // Clean up canvas and references when tile is removed
+        const tileEl = tileElements.get(tileId);
+        if (tileEl) {
+          const canvas = tileEl.querySelector('canvas');
+          if (canvas) {
+            // Clear canvas to free memory
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            canvas.width = 0;
+            canvas.height = 0;
+          }
+          tileElements.delete(tileId);
+        }
+        // Remove from renderer cache
+        tileRenderers.delete(tileId);
         grid[sel.row][sel.col] = null;
       });
     }
 
     function applyGravity() {
+      // Clean up tileElements and tileRenderers for tiles that are moving
+      // Since tiles move down, we need to clear old positions
       for (let c = 0; c < cols; c++) {
         const stack = [];
         for (let r = rows - 1; r >= 0; r--) {
@@ -1355,7 +1407,26 @@
         }
         let idx = 0;
         for (let r = rows - 1; r >= 0; r--) {
+          const oldTileId = `${r}-${c}`;
+          const oldTile = grid[r][c];
           grid[r][c] = stack[idx] || null;
+          const newTileId = `${r}-${c}`;
+          
+          // If position changed (tile moved), clean up old references
+          if (oldTile && oldTileId !== newTileId) {
+            // Clean up old position
+            tileElements.delete(oldTileId);
+            const oldRenderer = tileRenderers.get(oldTileId);
+            if (oldRenderer && oldRenderer.canvas) {
+              const ctx = oldRenderer.canvas.getContext('2d');
+              if (ctx) {
+                ctx.clearRect(0, 0, oldRenderer.canvas.width, oldRenderer.canvas.height);
+              }
+              oldRenderer.canvas.width = 0;
+              oldRenderer.canvas.height = 0;
+            }
+            tileRenderers.delete(oldTileId);
+          }
           idx += 1;
         }
       }
