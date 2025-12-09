@@ -3,8 +3,18 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/logo.webp',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/apple-touch-icon.png',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png',
+  '/og-image.png',
+  '/og-image-facebook.png',
+  '/og-image-twitter.png',
+  '/og-image-square.png',
   '/words.txt',
-  '/dictionary.json'
+  '/dictionary.json',
+  '/manifest.json'
 ];
 
 // Install event - cache resources
