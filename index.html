@@ -91,6 +91,7 @@
       align-items: center;
       gap: 2px;
       min-width: 50px;
+      position: relative;
     }
     .stat-label {
       font-size: 0.65rem;
@@ -104,6 +105,40 @@
       font-weight: 800;
       color: #e2e8f0;
       letter-spacing: 0.02em;
+      transition: transform 0.2s ease;
+    }
+    .stat-value.score-pop {
+      animation: scorePop 0.6s ease;
+    }
+    @keyframes scorePop {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.3); color: #22c55e; }
+      60% { transform: scale(1.1); }
+      100% { transform: scale(1); color: #e2e8f0; }
+    }
+    .points-gain {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #22c55e;
+      text-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+      pointer-events: none;
+      z-index: 50;
+      animation: floatUp 1s ease-out forwards;
+      white-space: nowrap;
+    }
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-60px) scale(1.2);
+      }
     }
     .controls {
       display: flex;
@@ -1535,6 +1570,32 @@
         combo = Math.max(1, parseFloat((combo - 0.1).toFixed(1)));
         decayBuffer -= 1;
       }
+    }
+
+    function animateScoreGain(points) {
+      // Add pop animation to score
+      headerScore.classList.add('score-pop');
+      setTimeout(() => {
+        headerScore.classList.remove('score-pop');
+      }, 600);
+      
+      // Create floating points indicator
+      const statItem = headerScore.closest('.stat-item');
+      if (statItem) {
+        const pointsGain = document.createElement('div');
+        pointsGain.className = 'points-gain';
+        pointsGain.textContent = `+${points}`;
+        statItem.style.position = 'relative';
+        statItem.appendChild(pointsGain);
+        
+        // Remove after animation
+        setTimeout(() => {
+          pointsGain.remove();
+        }, 1000);
+      }
+      
+      // Update score immediately
+      headerScore.textContent = score.toLocaleString();
     }
 
     function updateUI() {
