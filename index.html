@@ -2210,6 +2210,13 @@
           showCountdown();
         });
       }
+      
+      // Countdown overlay click handler - tap to skip
+      if (countdownOverlay) {
+        countdownOverlay.addEventListener('click', () => {
+          skipCountdown();
+        });
+      }
 
       againBtn.addEventListener('click', () => {
         clearAndReset();
