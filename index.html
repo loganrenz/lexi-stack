@@ -1798,6 +1798,30 @@
       running = true;
       requestAnimationFrame(gameLoop);
     }
+    
+    function skipCountdown() {
+      // Cancel any ongoing countdown animation
+      if (countdownAnimationId) {
+        cancelAnimationFrame(countdownAnimationId);
+        countdownAnimationId = null;
+      }
+      
+      // Clean up Three.js resources
+      if (countdownMesh) {
+        if (countdownScene) countdownScene.remove(countdownMesh);
+        countdownMesh.geometry.dispose();
+        countdownMesh.material.dispose();
+        countdownMesh = null;
+      }
+      
+      if (countdownRenderer) {
+        countdownRenderer.dispose();
+        countdownRenderer = null;
+      }
+      
+      // Start the game immediately
+      actuallyStartGame();
+    }
 
     function pauseGame() {
       paused = !paused;
