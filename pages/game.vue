@@ -20,30 +20,39 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-          <div class="text-right">
+          <div class="text-right" aria-label="Score">
             <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Score</p>
             <p class="text-2xl sm:text-3xl font-bold">{{ score.toLocaleString() }}</p>
           </div>
-          <div class="text-right">
+          <div class="text-right" aria-label="Combo multiplier">
             <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Combo</p>
             <p class="text-2xl sm:text-3xl font-bold text-emerald-400">x{{ comboMultiplier.toFixed(1) }}</p>
           </div>
-          <div class="text-right">
+          <div class="text-right" aria-label="Time remaining">
             <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Time</p>
             <p class="text-2xl sm:text-3xl font-bold" :class="timeRemaining < 10 ? 'text-red-400' : 'text-cyan-400'">
               {{ Math.ceil(timeRemaining) }}s
             </p>
           </div>
-          <div class="text-right">
+          <div class="text-right" aria-label="Level">
             <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Level</p>
             <p class="text-2xl sm:text-3xl font-bold text-blue-400">{{ level }}</p>
           </div>
+          <UButton
+            color="cyan"
+            variant="ghost"
+            :icon="isPaused ? 'i-heroicons-play' : 'i-heroicons-pause'"
+            @click="togglePause"
+            class="min-w-[96px]"
+          >
+            {{ isPaused ? 'Resume' : 'Pause' }}
+          </UButton>
         </div>
       </div>
 
       <!-- Game Canvas -->
       <div class="relative h-[60vh] min-h-[400px] sm:min-h-[500px] rounded-2xl border border-white/10 bg-gradient-to-b from-slate-950 to-slate-900 overflow-hidden shadow-2xl mb-4">
-        <canvas ref="canvasRef" class="h-full w-full touch-none"></canvas>
+        <canvas ref="canvasRef" class="h-full w-full touch-none" :class="{ 'pointer-events-none': isGameOver }"></canvas>
 
         <!-- Timer Bar -->
         <div class="absolute top-3 left-3 right-3 z-10">
@@ -137,35 +146,51 @@
             >
               Clear
             </UButton>
-            <UButton
-              color="emerald"
-              icon="i-heroicons-check"
-              :disabled="!selectedTiles.length || isGameOver || isSubmitting"
-              :loading="isSubmitting"
-              @click="handleSubmit"
-              class="min-h-[48px] px-6"
+            <UTooltip :text="submitTooltip" :open-delay="150">
+              <UButton
+                color="emerald"
+                icon="i-heroicons-check"
+                :disabled="!canSubmit || isGameOver || isSubmitting"
+                :loading="isSubmitting"
+                @click="handleSubmit"
+                class="min-h-[48px] px-6"
+              >
+                Submit
+              </UButton>
+            </UTooltip>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 mt-3 sm:mt-2">
+          <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-2"
+          >
+            <p
+              v-if="statusMessage"
+              class="text-sm sm:text-base font-semibold"
+              :class="statusMessageType === 'error' ? 'text-red-400' : 'text-emerald-300'"
             >
-              Submit
-            </UButton>
+              {{ statusMessage }}
+            </p>
+          </Transition>
+          <div v-if="isDictionaryLoading" class="flex items-center gap-2 text-xs text-slate-300">
+            <span class="i-heroicons-arrow-path animate-spin"></span>
+            Loading dictionary...
+          </div>
+          <div v-else-if="dictionaryFallback" class="flex items-center gap-2 text-xs text-amber-300 font-semibold">
+            <span class="i-heroicons-exclamation-triangle"></span>
+            Limited dictionary loaded; some words may be missing.
+          </div>
+          <div class="text-xs text-slate-300 flex items-center gap-2">
+            <span class="i-heroicons-cursor-arrow-rays"></span>
+            Keyboard cursor: {{ cursorLabel }}
           </div>
         </div>
       </UCard>
-
-      <!-- Status Message -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
-      >
-        <div v-if="statusMessage" class="mt-4 text-center">
-          <p class="text-sm sm:text-base font-medium" :class="statusMessageType === 'error' ? 'text-red-400' : 'text-emerald-300'">
-            {{ statusMessage }}
-          </p>
-        </div>
-      </Transition>
     </div>
   </div>
 </template>
@@ -175,13 +200,13 @@ definePageMeta({
   ssr: false
 })
 
-import { onMounted, onBeforeUnmount, ref, nextTick, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, nextTick, watch, computed } from 'vue'
 import { useGameState } from '~/composables/useGameState'
 import { useDictionary } from '~/composables/useDictionary'
 import { useThreeTowerScene } from '~/composables/useThreeTowerScene'
 
 const router = useRouter()
-const { isValidWord, preload } = useDictionary()
+const { isValidWord, preload, isLoading: isDictionaryLoading, fallbackUsed: dictionaryFallback } = useDictionary()
 const gameState = useGameState()
 
 const {
@@ -216,20 +241,31 @@ const statusMessage = ref('')
 const statusMessageType = ref<'success' | 'error'>('success')
 const rowTimer = ref(7) // Time until next row
 const rowTimerInterval = ref(7)
+const isPaused = ref(false)
+const cursorPosition = ref({ row: 0, col: 0 })
 
 // Computed
 const rowTimerPercent = computed(() => Math.max(0, Math.min(100, (rowTimer.value / rowTimerInterval.value) * 100)))
+const canSubmit = computed(() => selectedTiles.value.length >= 2)
+const submitTooltip = computed(() => {
+  if (isGameOver.value) return 'Game over'
+  if (!selectedTiles.value.length) return 'Select connected letters to submit'
+  if (!canSubmit.value) return 'Pick at least two letters'
+  return 'Submit your word'
+})
+const cursorLabel = computed(() => `Row ${cursorPosition.value.row + 1}, Col ${cursorPosition.value.col + 1}`)
 
 // Game loop
 let gameLoopId: number | null = null
 let lastTime = 0
+let handleKeyDown: ((e: KeyboardEvent) => void) | null = null
 
 const gameLoop = (currentTime: number) => {
   if (!lastTime) lastTime = currentTime
   const delta = (currentTime - lastTime) / 1000
   lastTime = currentTime
 
-  if (!isGameOver.value) {
+  if (!isGameOver.value && !isPaused.value) {
     updateTimer(delta)
     
     // Row timer
@@ -252,23 +288,23 @@ const gameLoop = (currentTime: number) => {
 
 // Update Three.js scene from grid state
 const updateScene = () => {
-    for (let row = 0; row < GRID_ROWS_VISIBLE; row++) {
-      for (let col = 0; col < GRID_COLS; col++) {
-        const letter = grid.value[row][col]
-        if (letter) {
-          scene.updateTile(letter, row, col)
-        }
+  for (let row = 0; row < GRID_ROWS_VISIBLE; row++) {
+    for (let col = 0; col < GRID_COLS; col++) {
+      const letter = grid.value[row][col]
+      if (letter) {
+        scene.updateTile(letter, row, col)
       }
     }
-
-    // Highlight selected tiles
-    const positions = selectedTiles.value.map(t => t.position)
-    scene.highlightTiles(positions)
   }
+
+  // Highlight selected tiles
+  const positions = selectedTiles.value.map(t => t.position)
+  scene.highlightTiles(positions)
+}
 
 // Handle tile click
 const handleTileClick = (event: MouseEvent | TouchEvent) => {
-  if (isGameOver.value) return
+  if (isGameOver.value || isPaused.value) return
 
   const x = 'touches' in event ? event.touches[0].clientX : event.clientX
   const y = 'touches' in event ? event.touches[0].clientY : event.clientY
@@ -287,7 +323,7 @@ const handleTileClick = (event: MouseEvent | TouchEvent) => {
 
 // Handle word submission
 const handleSubmit = async () => {
-  if (isSubmitting.value || !selectedTiles.value.length) return
+  if (isSubmitting.value || !canSubmit.value) return
 
   isSubmitting.value = true
   const result = await submitGameWord(isValidWord)
@@ -320,15 +356,42 @@ const showStatus = (message: string, type: 'success' | 'error' = 'success') => {
 
 // Restart game
 const restartGame = () => {
+  clearSelection()
   resetGame()
   rowTimer.value = 7
   rowTimerInterval.value = 7
   lastTime = 0
+  isPaused.value = false
   scene.dispose()
   nextTick(() => {
     scene.init()
     updateScene()
   })
+}
+
+const togglePause = () => {
+  if (isGameOver.value) return
+  isPaused.value = !isPaused.value
+  showStatus(isPaused.value ? 'Game paused' : 'Game resumed', 'success')
+}
+
+const moveCursor = (dx: number, dy: number) => {
+  const nextRow = Math.min(Math.max(cursorPosition.value.row + dy, 0), GRID_ROWS_VISIBLE - 1)
+  const nextCol = Math.min(Math.max(cursorPosition.value.col + dx, 0), GRID_COLS - 1)
+  cursorPosition.value = { row: nextRow, col: nextCol }
+  showStatus(`Cursor: ${cursorLabel.value}`, 'success')
+}
+
+const toggleCursorTile = () => {
+  if (isGameOver.value || isPaused.value) return
+  const position = { ...cursorPosition.value }
+  const result = toggleTile(position)
+  if (!result.success && result.message) {
+    showStatus(result.message, 'error')
+    scene.flashTiles([position])
+  } else {
+    updateScene()
+  }
 }
 
 // Navigation
@@ -362,6 +425,10 @@ const saveHighScore = () => {
 watch(isGameOver, (over) => {
   if (over) {
     saveHighScore()
+    clearSelection()
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
   }
 })
 
@@ -380,15 +447,32 @@ onMounted(async () => {
   canvasRef.value.addEventListener('pointerdown', handleTileClick)
   canvasRef.value.addEventListener('touchstart', handleTileClick, { passive: true })
   window.addEventListener('resize', scene.handleResize)
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+  handleKeyDown = (e: KeyboardEvent) => {
+    if (['ArrowUp', 'w', 'W'].includes(e.key)) {
+      e.preventDefault()
+      moveCursor(0, -1)
+    } else if (['ArrowDown', 's', 'S'].includes(e.key)) {
+      e.preventDefault()
+      moveCursor(0, 1)
+    } else if (['ArrowLeft', 'a', 'A'].includes(e.key)) {
+      e.preventDefault()
+      moveCursor(-1, 0)
+    } else if (['ArrowRight', 'd', 'D'].includes(e.key)) {
+      e.preventDefault()
+      moveCursor(1, 0)
+    } else if (e.key === 'Enter' && e.ctrlKey) {
       e.preventDefault()
       handleSubmit()
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      toggleCursorTile()
     } else if (e.key === 'Escape') {
       clearSelection()
       updateScene()
     }
-  })
+  }
+
+  window.addEventListener('keydown', handleKeyDown)
 
   // Initial scene update
   updateScene()
@@ -407,7 +491,11 @@ onBeforeUnmount(() => {
     canvasRef.value.removeEventListener('touchstart', handleTileClick)
   }
   window.removeEventListener('resize', scene.handleResize)
+  if (handleKeyDown) {
+    window.removeEventListener('keydown', handleKeyDown)
+  }
   scene.dispose()
+  document.body.style.overflow = ''
 })
 </script>
 

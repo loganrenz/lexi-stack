@@ -273,6 +273,7 @@ export const useGameState = () => {
     if (timeRemaining.value <= 0) {
       timeRemaining.value = 0
       isGameOver.value = true
+      clearSelection()
     }
 
     // Combo decay

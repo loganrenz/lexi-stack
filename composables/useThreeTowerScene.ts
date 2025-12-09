@@ -55,19 +55,21 @@ export const useThreeTowerScene = (
     canvas.width = size
     canvas.height = size
     const ctx = canvas.getContext('2d')!
-    
+
     const gradient = ctx.createLinearGradient(0, 0, size, size)
-    gradient.addColorStop(0, '#0f172a')
-    gradient.addColorStop(1, '#1a1f3a')
+    gradient.addColorStop(0, '#0b1224')
+    gradient.addColorStop(1, '#111b33')
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, size, size)
-    
-    ctx.fillStyle = '#e5e7eb'
-    ctx.font = 'bold 140px Inter, -apple-system, Arial, sans-serif'
+
+    ctx.fillStyle = '#ffffff'
+    ctx.shadowColor = '#000'
+    ctx.shadowBlur = 6
+    ctx.font = 'bold 148px Inter, -apple-system, Arial, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(letter, size / 2, size / 2)
-    
+
     const texture = new THREE.CanvasTexture(canvas)
     texture.needsUpdate = true
     return texture
@@ -78,11 +80,11 @@ export const useThreeTowerScene = (
     const geometry = new THREE.BoxGeometry(tileSize, tileSize, tileSize * 0.5)
     const texture = createLetterTexture(letter)
     const material = new THREE.MeshStandardMaterial({
-      color: '#cbd5f5',
+      color: '#9fb9ff',
       emissive: '#0ea5e9',
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.35,
       metalness: 0.2,
-      roughness: 0.4,
+      roughness: 0.35,
       map: texture,
       transparent: true
     })
@@ -259,9 +261,9 @@ export const useThreeTowerScene = (
     // Reset all
     for (const mesh of selectedMeshes) {
       const material = mesh.material as THREE.MeshStandardMaterial
-      material.color.set('#cbd5f5')
+      material.color.set('#9fb9ff')
       material.emissive.set('#0ea5e9')
-      material.emissiveIntensity = 0.3
+      material.emissiveIntensity = 0.35
       mesh.scale.setScalar(1)
     }
     selectedMeshes.clear()
@@ -274,7 +276,7 @@ export const useThreeTowerScene = (
         const material = mesh.material as THREE.MeshStandardMaterial
         material.color.set('#67e8f9')
         material.emissive.set('#22d3ee')
-        material.emissiveIntensity = 0.8
+        material.emissiveIntensity = 0.9
         mesh.scale.setScalar(1.1)
         selectedMeshes.add(mesh)
       }
@@ -304,11 +306,20 @@ export const useThreeTowerScene = (
 
   // Get tile position from screen coordinates
   const getTileFromScreen = (x: number, y: number): GridPosition | null => {
-    if (!renderer || !camera || !raycaster || !pointer) return null
+    if (!renderer || !camera || !raycaster || !pointer || !canvasRef.value) return null
 
     const rect = renderer.domElement.getBoundingClientRect()
-    pointer.x = ((x - rect.left) / rect.width) * 2 - 1
-    pointer.y = -((y - rect.top) / rect.height) * 2 + 1
+    const dpr = window.devicePixelRatio || 1
+    const canvasWidth = canvasRef.value.width || renderer.getContext().canvas.width
+    const canvasHeight = canvasRef.value.height || renderer.getContext().canvas.height
+    const scaleX = (renderer.getContext().canvas.width || canvasWidth) / (rect.width || 1)
+    const scaleY = (renderer.getContext().canvas.height || canvasHeight) / (rect.height || 1)
+
+    const normalizedX = ((x - rect.left) * scaleX) / (canvasWidth / dpr)
+    const normalizedY = ((y - rect.top) * scaleY) / (canvasHeight / dpr)
+
+    pointer.x = normalizedX * 2 - 1
+    pointer.y = -(normalizedY * 2 - 1)
 
     raycaster.setFromCamera(pointer, camera)
     const meshes = Array.from(tileMeshes.values())
