@@ -4,6 +4,7 @@
   "outputDirectory": ".",
   "framework": null,
   "installCommand": "echo 'No install needed'",
+  "public": true,
   "headers": [
     {
       "source": "/og-image.png",
