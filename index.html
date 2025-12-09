@@ -452,24 +452,37 @@
         <input 
           type="text" 
           id="registerUsernameInput" 
+          name="username"
           placeholder="Choose a username" 
           style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
           maxlength="20"
-          autocomplete="username"
+          autocomplete="off"
+          spellcheck="false"
+          autocorrect="off"
+          autocapitalize="off"
+          inputmode="text"
         >
         <input 
           type="password" 
           id="registerPasswordInput" 
+          name="new-password"
           placeholder="Create a password (min 6 characters)" 
           style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px;"
           autocomplete="new-password"
+          spellcheck="false"
+          autocorrect="off"
+          autocapitalize="off"
         >
         <input 
           type="password" 
           id="registerConfirmPasswordInput" 
+          name="confirm-password"
           placeholder="Confirm password" 
           style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 1rem; box-sizing: border-box;"
           autocomplete="new-password"
+          spellcheck="false"
+          autocorrect="off"
+          autocapitalize="off"
         >
         <div id="registerStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
       </div>
@@ -652,6 +665,7 @@
     
     async function checkUsernameAvailability(username) {
       try {
+        // Try the check endpoint first
         const response = await fetch(`${API_BASE_URL}/api/user/check?username=${encodeURIComponent(username)}`);
         
         // Handle non-200 status codes
@@ -659,6 +673,25 @@
           if (response.status === 409 || response.status === 400) {
             // Conflict or bad request - username likely taken
             return false;
+          }
+          if (response.status === 404) {
+            // Endpoint doesn't exist, try alternative method
+            // Try to query user by username (if API supports it)
+            try {
+              const userResponse = await fetch(`${API_BASE_URL}/api/user?username=${encodeURIComponent(username)}`);
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                // If user exists, username is taken
+                if (userData.user || userData.username) {
+                  return false;
+                }
+              }
+            } catch (e) {
+              // Fallback: can't check, will rely on POST endpoint validation
+              console.warn('Could not check username availability, will validate on creation');
+            }
+            // If check endpoint doesn't exist, we'll validate on creation
+            return true;
           }
           // Other errors - assume available for now, will check on create
           return true;
@@ -1331,7 +1364,21 @@
           return;
         }
         
+        // Final check: verify username is still available before submission
         registerBtn.disabled = true;
+        registerBtn.textContent = 'Checking availability...';
+        registerStatus.textContent = 'Verifying username availability...';
+        registerStatus.style.color = '#94a3b8';
+        
+        const isAvailable = await checkUsernameAvailability(username);
+        if (!isAvailable) {
+          registerStatus.textContent = '✗ Username is already taken. Please choose another.';
+          registerStatus.style.color = '#ef4444';
+          registerBtn.disabled = false;
+          registerBtn.textContent = 'Create Account';
+          return;
+        }
+        
         registerBtn.textContent = 'Creating account...';
         registerStatus.textContent = '';
         
