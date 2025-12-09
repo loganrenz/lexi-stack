@@ -349,6 +349,14 @@
     .gameover h1 { font-size: 2.2rem; margin-bottom: 6px; background: linear-gradient(135deg, #22d3ee, #6366f1); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .gameover .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
     .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.2); border-radius: 12px; padding: 12px; font-weight: 700; }
+    
+    input[type="text"] {
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: rgba(34, 211, 238, 0.6) !important;
+      box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+    }
 
     @media (min-width: 900px) {
       .board { max-height: 70vh; }
@@ -454,9 +462,30 @@
         <div class="card">Best Combo<br><span id="finalCombo">x1.0</span></div>
         <div class="card">Longest Word<br><span id="finalLongest">-</span></div>
       </div>
+      <div id="userSection" style="margin: 16px 0; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; display: none;">
+        <div style="margin-bottom: 8px; font-size: 0.85rem; color: #94a3b8;">Save your score:</div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="usernameInput" placeholder="Enter username" style="flex: 1; padding: 8px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; color: #e2e8f0; font-size: 0.9rem;" maxlength="20">
+          <button class="primary" id="saveScoreBtn" style="padding: 8px 16px;">Save</button>
+        </div>
+        <div id="userStatus" style="margin-top: 8px; font-size: 0.75rem; color: #94a3b8;"></div>
+      </div>
       <div class="modal-actions">
+        <button id="leaderboardBtn" style="display: none;">Leaderboard</button>
         <button id="homeBtn">Home</button>
         <button class="primary" id="againBtn">Play Again</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="overlay" id="leaderboardModal" style="display:none;">
+    <div class="modal">
+      <h2>Top Scores</h2>
+      <div id="leaderboardList" style="max-height: 400px; overflow-y: auto; margin: 16px 0;">
+        <div style="text-align: center; padding: 20px; color: #94a3b8;">Loading...</div>
+      </div>
+      <div class="modal-actions">
+        <button id="closeLeaderboardBtn">Close</button>
       </div>
     </div>
   </div>
@@ -522,6 +551,14 @@
     const againBtn = document.getElementById('againBtn');
     const homeBtn = document.getElementById('homeBtn');
     const toastArea = document.getElementById('toasts');
+    const userSection = document.getElementById('userSection');
+    const usernameInput = document.getElementById('usernameInput');
+    const saveScoreBtn = document.getElementById('saveScoreBtn');
+    const userStatus = document.getElementById('userStatus');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    const leaderboardModal = document.getElementById('leaderboardModal');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
 
     let dictionary = new Set(fallbackWords);
     let grid = [];
@@ -543,6 +580,71 @@
     let dragging = false;
     let pointerId = null;
     let tileRenderers = new Map();
+    let currentUser = null;
+    let wordsPlayed = 0;
+    
+    // API functions
+    const API_BASE_URL = 'https://lexi-stack-api.narduk.workers.dev';
+    
+    async function getOrCreateUser(username, userId = null) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, userId }),
+        });
+        const data = await response.json();
+        return data.user;
+      } catch (error) {
+        console.error('Error creating user:', error);
+        return null;
+      }
+    }
+    
+    async function submitScore(userId, scoreData) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/scores`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            score: scoreData.score,
+            combo: scoreData.combo,
+            longestWord: scoreData.longestWord,
+            level: scoreData.level,
+            wordsPlayed: scoreData.wordsPlayed || 0,
+          }),
+        });
+        const data = await response.json();
+        return data.success;
+      } catch (error) {
+        console.error('Error submitting score:', error);
+        return false;
+      }
+    }
+    
+    async function getLeaderboard(limit = 10) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/scores?limit=${limit}`);
+        const data = await response.json();
+        return data.scores || [];
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        return [];
+      }
+    }
+    
+    async function trackWord(word) {
+      try {
+        await fetch(`${API_BASE_URL}/api/words`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ word }),
+        });
+      } catch (error) {
+        // Silently fail - word tracking is optional
+      }
+    }
 
     const letterPool = (() => {
       const pool = [];
@@ -765,6 +867,7 @@
       const gained = wordScore(word);
       score += gained;
       longestWord = word.length > longestWord.length ? word : longestWord;
+      wordsPlayed++;
       addToast(`Cleared ${word}! +${gained} pts`, 'success');
       combo = Math.min(5, combo + 0.1);
       bestCombo = Math.max(bestCombo, combo);
@@ -777,6 +880,8 @@
       clearSelection();
       rowInterval = Math.max(3, rowInterval - 0.05);
       updateUI();
+      // Track word usage (async, don't wait)
+      trackWord(word);
     }
 
     function flashSelection() {
@@ -876,13 +981,37 @@
       headerLevel.textContent = level;
     }
 
-    function endGame() {
+    async function endGame() {
       running = false;
       paused = false;
       gameOver.style.display = 'flex';
       finalScore.textContent = score.toLocaleString();
       finalCombo.textContent = `x${bestCombo.toFixed(1)}`;
       finalLongest.textContent = longestWord || '-';
+      
+      // Show user section if no user, or show status if user exists
+      if (!currentUser) {
+        userSection.style.display = 'block';
+        usernameInput.value = '';
+        userStatus.textContent = '';
+        leaderboardBtn.style.display = 'none';
+      } else {
+        userSection.style.display = 'none';
+        userStatus.textContent = `Playing as: ${currentUser.username}`;
+        leaderboardBtn.style.display = 'inline-block';
+        // Auto-submit score if user exists
+        submitScore(currentUser.id, {
+          score,
+          combo: bestCombo,
+          longestWord,
+          level,
+          wordsPlayed,
+        }).then(success => {
+          if (success) {
+            addToast('Score saved!', 'success');
+          }
+        });
+      }
     }
 
     function gameLoop(timestamp) {
@@ -943,6 +1072,7 @@
       level = 1;
       rowsAdded = 0;
       selection = [];
+      wordsPlayed = 0;
       resetGrid();
       renderGrid();
       updateUI();
@@ -1012,6 +1142,71 @@
       homeBtn.addEventListener('click', () => {
         gameOver.style.display = 'none';
         tutorial.style.display = 'flex';
+      });
+      
+      saveScoreBtn.addEventListener('click', async () => {
+        const username = usernameInput.value.trim();
+        if (!username) {
+          addToast('Please enter a username', 'error');
+          return;
+        }
+        if (username.length > 20) {
+          addToast('Username must be 20 characters or less', 'error');
+          return;
+        }
+        saveScoreBtn.disabled = true;
+        saveScoreBtn.textContent = 'Saving...';
+        const user = await getOrCreateUser(username, currentUser?.id);
+        if (user) {
+          currentUser = user;
+          userSection.style.display = 'none';
+          userStatus.textContent = `Playing as: ${user.username}`;
+          leaderboardBtn.style.display = 'inline-block';
+          // Submit score
+          const success = await submitScore(user.id, {
+            score,
+            combo: bestCombo,
+            longestWord,
+            level,
+            wordsPlayed,
+          });
+          if (success) {
+            addToast('Score saved!', 'success');
+          }
+        } else {
+          addToast('Failed to save. Please try again.', 'error');
+          saveScoreBtn.disabled = false;
+          saveScoreBtn.textContent = 'Save';
+        }
+      });
+      
+      usernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          saveScoreBtn.click();
+        }
+      });
+      
+      leaderboardBtn.addEventListener('click', async () => {
+        leaderboardModal.style.display = 'flex';
+        leaderboardList.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">Loading...</div>';
+        const scores = await getLeaderboard(10);
+        if (scores.length === 0) {
+          leaderboardList.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">No scores yet. Be the first!</div>';
+        } else {
+          leaderboardList.innerHTML = scores.map((s, i) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(148,163,184,0.2);">
+              <div>
+                <div style="font-weight: 700; color: #e2e8f0;">#${i + 1} ${s.username}</div>
+                <div style="font-size: 0.85rem; color: #94a3b8;">Level ${s.level} • ${s.words_played} words • Combo x${s.combo}</div>
+              </div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--cyan);">${s.score.toLocaleString()}</div>
+            </div>
+          `).join('');
+        }
+      });
+      
+      closeLeaderboardBtn.addEventListener('click', () => {
+        leaderboardModal.style.display = 'none';
       });
     }
 
