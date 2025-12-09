@@ -132,7 +132,7 @@
 
     .board {
       position: relative;
-      aspect-ratio: 8 / 10;
+      aspect-ratio: 7 / 10;
       min-height: 400px;
       max-height: 65vh;
       width: 100%;
@@ -145,7 +145,7 @@
       position: absolute;
       inset: 12px;
       display: grid;
-      grid-template-columns: repeat(8, 1fr);
+      grid-template-columns: repeat(7, 1fr);
       grid-template-rows: repeat(10, 1fr);
       gap: 4px;
       touch-action: none;
@@ -271,7 +271,7 @@
       text-align: center;
       color: #e2e8f0;
     }
-    .gameover h1 { font-size: 2.2rem; margin-bottom: 6px; background: linear-gradient(135deg, #22d3ee, #6366f1); -webkit-background-clip: text; color: transparent; }
+    .gameover h1 { font-size: 2.2rem; margin-bottom: 6px; background: linear-gradient(135deg, #22d3ee, #6366f1); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .gameover .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
     .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(148,163,184,0.2); border-radius: 12px; padding: 12px; font-weight: 700; }
 
@@ -375,7 +375,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
   <script>
     const rows = 10;
-    const cols = 8;
+    const cols = 7;
     const initialRows = 5;
     const letterWeights = {
       E: 12, A: 9, I: 9, O: 8, N: 6, R: 6, T: 6, L: 4, S: 4, U: 4, D: 4, G: 3,
