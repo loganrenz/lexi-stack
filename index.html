@@ -1410,7 +1410,8 @@
       score += gained;
       longestWord = word.length > longestWord.length ? word : longestWord;
       wordsPlayed++;
-      addToast(`Cleared ${word}! +${gained} pts`, 'success');
+      // Animate score instead of showing toast
+      animateScoreGain(gained);
       combo = Math.min(5, combo + 0.1);
       bestCombo = Math.max(bestCombo, combo);
       lastWordAt = performance.now();
