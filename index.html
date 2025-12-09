@@ -892,9 +892,15 @@
       lastTime = timestamp;
       if (!paused) {
         timeLeft -= delta;
-        rowTimer -= delta;
+        // Only decrement row timer if user is not actively selecting
+        if (!dragging) {
+          rowTimer -= delta;
+        }
         decayCombo(delta);
-        if (rowTimer <= 0) addRow();
+        // Only add row if timer expired AND user is not dragging
+        if (rowTimer <= 0 && !dragging) {
+          addRow();
+        }
         if (timeLeft <= 0) {
           timeLeft = 0;
           updateUI();
