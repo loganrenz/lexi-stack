@@ -586,9 +586,12 @@
         
         <div id="settingsStatus" style="margin-top: 8px; font-size: 0.85rem; color: #94a3b8; min-height: 20px;"></div>
       </form>
-      <div class="modal-actions" style="display: flex; gap: 8px;">
-        <button type="submit" form="settingsForm" class="primary" id="settingsSaveBtn" style="flex: 1;">Save Changes</button>
-        <button id="settingsCancelBtn" style="flex: 1;">Close</button>
+      <div class="modal-actions" style="display: flex; gap: 8px; flex-direction: column;">
+        <div style="display: flex; gap: 8px;">
+          <button type="submit" form="settingsForm" class="primary" id="settingsSaveBtn" style="flex: 1;">Save Changes</button>
+          <button id="settingsCancelBtn" style="flex: 1;">Close</button>
+        </div>
+        <button id="settingsLogoutBtn" class="danger" style="width: 100%; margin-top: 8px;">Log Out</button>
       </div>
     </div>
   </div>
@@ -768,6 +771,7 @@
     const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
     const regenerateUsernameBtn = document.getElementById('regenerateUsernameBtn');
     const regeneratePasswordBtn = document.getElementById('regeneratePasswordBtn');
+    const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 
     let dictionary = new Set(fallbackWords);
     let grid = [];
@@ -1780,6 +1784,35 @@
         closeSettingsModal();
       });
       
+      settingsLogoutBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to log out? Your current game progress will be lost.')) {
+          // Clear user data
+          currentUser = null;
+          localStorage.removeItem('lexistack_user');
+          
+          // Reset game state
+          running = false;
+          paused = false;
+          
+          // Hide game over and tutorial
+          gameOver.style.display = 'none';
+          tutorial.style.display = 'none';
+          
+          // Close settings modal
+          closeSettingsModal();
+          
+          // Update UI
+          updateUserBadge();
+          
+          // Show registration modal
+          registerModal.style.display = 'flex';
+          prefillRegistrationForm();
+          registerUsernameInput.focus();
+          
+          addToast('Logged out successfully', 'success');
+        }
+      });
+      
       regenerateUsernameBtn.addEventListener('click', () => {
         registerUsernameInput.value = generateUsername();
         registerStatus.textContent = '';
@@ -1967,12 +2000,11 @@
     }
     
     function prefillRegistrationForm() {
-      // Auto-generate username and password
+      // Auto-generate username only (password left empty for Safari password saver)
       const username = generateUsername();
-      const password = generatePassword();
       registerUsernameInput.value = username;
-      registerPasswordInput.value = password;
-      registerConfirmPasswordInput.value = password;
+      registerPasswordInput.value = '';
+      registerConfirmPasswordInput.value = '';
       registerStatus.textContent = '';
     }
     
