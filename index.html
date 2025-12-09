@@ -38,10 +38,12 @@
     }
     .app {
       width: min(100%, 1100px);
-      padding: 12px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
+      height: 100vh;
+      min-height: 100vh;
     }
     @media (max-width: 768px) {
       .app {
@@ -53,9 +55,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 8px;
       flex-wrap: wrap;
-      padding: 8px 0;
+      padding: 6px 0;
     }
     .brand {
       font-size: 1.4rem;
@@ -77,7 +79,7 @@
     }
     .header-stats {
       display: flex;
-      gap: 20px;
+      gap: 12px;
       align-items: center;
       flex-wrap: wrap;
       flex: 1;
@@ -88,7 +90,7 @@
       flex-direction: column;
       align-items: center;
       gap: 2px;
-      min-width: 60px;
+      min-width: 50px;
     }
     .stat-label {
       font-size: 0.65rem;
@@ -132,21 +134,25 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
       border: 1px solid rgba(148, 163, 184, 0.3);
       border-radius: 16px;
-      padding: 10px;
+      padding: 8px;
       box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
     @media (max-width: 768px) {
       .board-wrap {
-        padding: 8px;
+        padding: 6px;
         border-radius: 12px;
       }
     }
 
     .board {
       position: relative;
-      aspect-ratio: 7 / 10;
-      min-height: 400px;
-      max-height: 65vh;
+      aspect-ratio: 6 / 10;
+      min-height: 450px;
+      max-height: 75vh;
       width: 100%;
       background: radial-gradient(circle at 50% -10%, rgba(34, 211, 238, 0.08), transparent 40%), #0b1224;
       border-radius: 12px;
@@ -295,14 +301,15 @@
 
     .toast-area {
       position: fixed;
-      left: 50%;
-      bottom: 20px;
-      transform: translateX(-50%);
+      top: 80px;
+      right: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
       z-index: 60;
-      width: min(90%, 360px);
+      width: min(280px, calc(100% - 24px));
+      max-width: 320px;
+      pointer-events: none;
     }
     .toast {
       padding: 10px 14px;
@@ -648,7 +655,7 @@
 
   <script>
     const rows = 10;
-    const cols = 7;
+    const cols = 6;
     const initialRows = 5;
     const letterWeights = {
       E: 12, A: 9, I: 9, O: 8, N: 6, R: 6, T: 6, L: 4, S: 4, U: 4, D: 4, G: 3,
