@@ -1353,14 +1353,14 @@
       }
       
       lastSelectionTime = now;
-      // Verify letter matches what's in grid
-      const currentTile = grid[row][col];
-      if (!currentTile || currentTile.letter !== tile.letter) {
-        console.error(`Letter mismatch during selection at [${row},${col}]: expected "${tile.letter}", grid has "${currentTile?.letter || 'null'}"`);
-        if (!currentTile) return; // Tile was removed
-        tile.letter = currentTile.letter; // Use current letter
+      // Always use the current tile from grid to ensure we have the latest letter
+      const currentTile = grid[row] && grid[row][col];
+      if (!currentTile) {
+        console.warn(`No tile at [${row},${col}] during selection`);
+        return; // Tile was removed
       }
-      selection.push({ row, col, letter: tile.letter });
+      // Use the letter directly from the grid, not from the initial tile reference
+      selection.push({ row, col, letter: currentTile.letter });
       updateFloatingWord();
       renderGrid(false); // Use incremental update
     }
@@ -1723,12 +1723,14 @@
         if (!cell || !running || paused) return;
         const row = Number(cell.dataset.row);
         const col = Number(cell.dataset.col);
-        if (!grid[row][col]) return;
+        // Validate row and col are within bounds
+        if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+        if (!grid[row] || !grid[row][col]) return;
         dragging = true;
         pointerId = e.pointerId;
         const tile = grid[row][col];
         if (!tile) return;
-        // Verify letter is correct
+        // Use letter directly from grid
         selection = [{ row, col, letter: tile.letter }];
         updateFloatingWord();
         renderGrid(false); // Use incremental update
@@ -1743,6 +1745,8 @@
         if (!cell) return;
         const row = Number(cell.dataset.row);
         const col = Number(cell.dataset.col);
+        // Validate row and col are within bounds
+        if (row < 0 || row >= rows || col < 0 || col >= cols) return;
         handleSelection(row, col, e);
       });
 
