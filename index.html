@@ -793,6 +793,8 @@
     let dragging = false;
     let pointerId = null;
     let tileRenderers = new Map();
+    let tileElements = new Map(); // Cache tile DOM elements for quick updates
+    let lastSelection = []; // Track previous selection to detect changes
     let currentUser = null;
     let wordsPlayed = 0;
     
@@ -1080,43 +1082,98 @@
       return canvas;
     }
 
-    function renderTileWithThreeJS(tileDiv, letter, isHigh, isSelected) {
-      const canvas = createThreeJSText(letter, isHigh, isSelected);
+    function renderTileWithThreeJS(tileDiv, letter, isHigh, isSelected, row, col) {
+      const tileId = `${row}-${col}`;
       const existingCanvas = tileDiv.querySelector('canvas');
+      
+      // Only recreate canvas if letter, isHigh, or isSelected changed
+      const cacheKey = `${letter}-${isHigh}-${isSelected}`;
+      const cached = tileRenderers.get(tileId);
+      
+      if (cached && cached.cacheKey === cacheKey && existingCanvas) {
+        // Canvas already exists and matches, just update classes
+        return;
+      }
+      
+      // Create new canvas
+      const canvas = createThreeJSText(letter, isHigh, isSelected);
       if (existingCanvas) {
         existingCanvas.remove();
       }
       tileDiv.appendChild(canvas);
+      
+      // Cache the render info
+      tileRenderers.set(tileId, { cacheKey, canvas });
+    }
+    
+    function updateTileSelection(row, col, isSelected) {
+      const tileId = `${row}-${col}`;
+      const tileEl = tileElements.get(tileId);
+      if (!tileEl) return;
+      
+      if (isSelected) {
+        tileEl.classList.add('selected');
+      } else {
+        tileEl.classList.remove('selected');
+      }
     }
 
-    function renderGrid() {
-      gridEl.innerHTML = '';
-      tileRenderers.clear();
-      gridEl.style.setProperty('--rows', rows);
-      gridEl.style.setProperty('--cols', cols);
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const cell = document.createElement('div');
-          cell.className = 'cell';
-          cell.dataset.row = r;
-          cell.dataset.col = c;
-          const tile = grid[r][c];
-          if (tile) {
-            const div = document.createElement('div');
-            div.className = 'tile';
-            const isHigh = highLetters.has(tile.letter);
-            const isSelected = selection.some(s => s.row === r && s.col === c);
-            const letterValue = letterValues[tile.letter] || 1;
-            // Add value class for border color
-            div.classList.add(`value-${letterValue}`);
-            if (isHigh) div.classList.add('high');
-            if (isSelected) div.classList.add('selected');
-            renderTileWithThreeJS(div, tile.letter, isHigh, isSelected);
-            cell.appendChild(div);
+    function renderGrid(forceFullRender = false) {
+      const needsFullRender = forceFullRender || tileElements.size === 0;
+      
+      if (needsFullRender) {
+        // Full render: clear and rebuild everything
+        gridEl.innerHTML = '';
+        tileRenderers.clear();
+        tileElements.clear();
+        gridEl.style.setProperty('--rows', rows);
+        gridEl.style.setProperty('--cols', cols);
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+            const tile = grid[r][c];
+            if (tile) {
+              const div = document.createElement('div');
+              div.className = 'tile';
+              div.dataset.row = r;
+              div.dataset.col = c;
+              const isHigh = highLetters.has(tile.letter);
+              const isSelected = selection.some(s => s.row === r && s.col === c);
+              const letterValue = letterValues[tile.letter] || 1;
+              div.classList.add(`value-${letterValue}`);
+              if (isHigh) div.classList.add('high');
+              if (isSelected) div.classList.add('selected');
+              renderTileWithThreeJS(div, tile.letter, isHigh, isSelected, r, c);
+              cell.appendChild(div);
+              tileElements.set(`${r}-${c}`, div);
+            }
+            gridEl.appendChild(cell);
           }
-          gridEl.appendChild(cell);
+        }
+      } else {
+        // Incremental update: only update selection state
+        const currentSelectionSet = new Set(selection.map(s => `${s.row}-${s.col}`));
+        const lastSelectionSet = new Set(lastSelection.map(s => `${s.row}-${s.col}`));
+        
+        // Update tiles that changed selection state
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const tileId = `${r}-${c}`;
+            const isCurrentlySelected = currentSelectionSet.has(tileId);
+            const wasSelected = lastSelectionSet.has(tileId);
+            
+            if (isCurrentlySelected !== wasSelected) {
+              updateTileSelection(r, c, isCurrentlySelected);
+            }
+          }
         }
       }
+      
+      lastSelection = [...selection];
       drawPath();
     }
 
@@ -1193,7 +1250,7 @@
       lastSelectionTime = now;
       selection.push({ row, col, letter: tile.letter });
       updateFloatingWord();
-      renderGrid();
+      renderGrid(false); // Use incremental update
     }
 
     function selectionWord() {
@@ -1251,6 +1308,7 @@
       removeTiles();
       applyGravity();
       clearSelection();
+      renderGrid(true); // Force full render after gravity changes
       rowInterval = Math.max(3, rowInterval - 0.05);
       updateUI();
       // Track word usage (async, don't wait)
@@ -1303,9 +1361,9 @@
       }
     }
 
-    function clearSelection() {
+    function clearSelection(forceFullRender = false) {
       selection = [];
-      renderGrid();
+      renderGrid(forceFullRender);
     }
 
     function showFloatingWord(x, y) {
@@ -1462,7 +1520,7 @@
       selection = [];
       wordsPlayed = 0;
       resetGrid();
-      renderGrid();
+      renderGrid(true); // Force full render on reset
       updateUI();
       requestAnimationFrame(gameLoop);
     }
