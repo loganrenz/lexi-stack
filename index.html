@@ -1590,13 +1590,8 @@
           if (user) {
             currentUser = user;
             updateUserBadge();
-            registerModal.style.display = 'none';
-            // Show tutorial if not seen before
-            if (!localStorage.getItem('lexistack_tutorial_seen')) {
-              tutorial.style.display = 'flex';
-            } else {
-              clearAndReset();
-            }
+            // Reload the page to trigger Safari password save prompt
+            window.location.reload();
           } else {
             registerStatus.textContent = 'Failed to create account. Please try again.';
             registerStatus.style.color = '#ef4444';
