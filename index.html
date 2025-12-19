@@ -870,8 +870,10 @@
   </div>
 
   <script>
-    // Optimize grid size for mobile devices
+    // Mobile detection - shared across the app
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+    
+    // Optimize grid size for mobile devices
     const rows = 10;
     const cols = isMobile ? 5 : 6; // Fewer columns on mobile for better touch targets
     const initialRows = 5;
@@ -1274,13 +1276,12 @@
     function createThreeJSText(letter, isHigh, isSelected) {
       const canvas = document.createElement('canvas');
       // Optimize canvas size based on device - smaller on mobile to save memory
-      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const pixelRatio = isMobileDevice ? 1.5 : Math.min(window.devicePixelRatio || 1, 2);
-      const baseSize = isMobileDevice ? 256 : 512;
+      const pixelRatio = isMobile ? 1.5 : Math.min(window.devicePixelRatio || 1, 2);
+      const baseSize = isMobile ? 256 : 512;
       const size = baseSize * pixelRatio;
       canvas.width = size;
       canvas.height = size;
-      const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: false });
+      const ctx = canvas.getContext('2d', { alpha: true });
       
       // Enable text rendering hints for better quality
       ctx.imageSmoothingEnabled = true;
