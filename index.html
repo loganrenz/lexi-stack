@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   
   <!-- Primary Meta Tags -->
@@ -86,20 +88,25 @@
       overflow: hidden;
       display: flex;
       justify-content: center;
+      /* iOS-specific touch improvements */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: none;
     }
     .app {
       width: min(100%, 1100px);
-      padding: 8px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       height: 100vh;
       min-height: 100vh;
     }
     @media (max-width: 768px) {
       .app {
-        padding: 8px;
-        gap: 8px;
+        padding: 4px;
+        gap: 4px;
       }
     }
     header {
@@ -204,11 +211,20 @@
       border-radius: 10px;
       padding: 10px 14px;
       font-weight: 700;
+      font-size: 0.9rem;
       letter-spacing: 0.02em;
       cursor: pointer;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 6px 18px var(--shadow);
       transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
       touch-action: manipulation;
+      min-height: 44px; /* iOS recommended minimum */
+    }
+    @media (max-width: 768px) {
+      button {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+        min-height: 48px; /* Slightly larger on mobile for easier tapping */
+      }
     }
     button:hover { transform: translateY(-1px); box-shadow: 0 10px 22px var(--shadow); }
     button:active { transform: translateY(0); box-shadow: 0 4px 12px var(--shadow); }
@@ -292,13 +308,17 @@
         padding: 6px;
         border-radius: 12px;
       }
+      /* Hide less critical stats on mobile to reduce clutter */
+      .stat-item:nth-child(4) { /* Next Row timer */
+        display: none;
+      }
     }
 
     .board {
       position: relative;
       aspect-ratio: 6 / 10;
-      min-height: 450px;
-      max-height: 75vh;
+      min-height: 400px;
+      max-height: 70vh;
       width: 100%;
       background: radial-gradient(circle at 50% -10%, rgba(34, 211, 238, 0.08), transparent 40%), #0b1224;
       border-radius: 12px;
@@ -307,19 +327,20 @@
     }
     @media (max-width: 768px) {
       .board {
-        min-height: 50vh;
-        max-height: 75vh;
+        aspect-ratio: 5 / 10; /* Adjust for mobile 5-column grid */
+        min-height: 55vh;
+        max-height: 72vh;
       }
       .grid {
-        gap: 5px;
-        inset: 6px;
+        gap: 6px; /* Slightly larger gap for easier selection */
+        inset: 8px;
       }
       .cell {
-        min-height: 48px; /* Larger touch target on mobile */
+        min-height: 56px; /* Larger touch target on mobile (recommended 48px minimum, using 56px for comfort) */
       }
       .tile {
         inset: 2px;
-        border-width: 1.5px;
+        border-width: 2px; /* Thicker border for better visibility */
       }
     }
     .grid {
@@ -406,10 +427,10 @@
     .floating-word {
       position: fixed;
       pointer-events: none;
-      background: rgba(15,23,42,0.9);
-      padding: 8px 12px;
+      background: rgba(15,23,42,0.95);
+      padding: 10px 14px;
       border-radius: 12px;
-      border: 1px solid rgba(148,163,184,0.3);
+      border: 2px solid rgba(148,163,184,0.4);
       box-shadow: 0 10px 25px rgba(0,0,0,0.35);
       transform: translate(-50%, -150%);
       display: none;
@@ -418,6 +439,8 @@
       min-width: 120px;
       z-index: 30;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      /* Make more visible on mobile */
+      font-size: 1.1rem;
     }
     .floating-word.warning {
       border-color: rgba(239, 68, 68, 0.6);
@@ -447,15 +470,23 @@
 
     .toast-area {
       position: fixed;
-      top: 80px;
-      right: 12px;
+      top: 70px;
+      right: 8px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       z-index: 60;
-      width: min(280px, calc(100% - 24px));
+      width: min(260px, calc(100% - 16px));
       max-width: 320px;
       pointer-events: none;
+    }
+    @media (max-width: 768px) {
+      .toast-area {
+        top: 60px;
+        right: 4px;
+        width: calc(100% - 8px);
+        max-width: 280px;
+      }
     }
     .toast {
       padding: 8px 12px;
@@ -499,8 +530,24 @@
       border: 1px solid rgba(148,163,184,0.3);
       padding: 20px;
       border-radius: 16px;
-      width: min(420px, 100%);
+      width: min(420px, calc(100% - 32px));
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
       box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 768px) {
+      .modal {
+        padding: 16px;
+        width: calc(100% - 24px);
+        max-height: calc(100vh - 48px);
+      }
+      .modal h2 {
+        font-size: 1.3rem;
+      }
+      .modal ul {
+        font-size: 0.9rem;
+        padding-left: 16px;
+      }
     }
     .modal h2 { margin-top: 0; }
     .modal ul { padding-left: 18px; color: #cbd5e1; }
@@ -532,32 +579,32 @@
         width: 100%;
         justify-content: space-around;
         margin-top: 8px;
-        gap: 12px;
+        gap: 8px;
       }
       header {
         flex-direction: column;
         align-items: stretch;
-        padding: 6px 0;
+        padding: 4px 0;
       }
       .brand {
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+      }
+      .badge {
+        padding: 3px 8px;
+        font-size: 0.7rem;
       }
       .controls {
         justify-content: center;
       }
       .stat-item {
-        min-width: 50px;
+        min-width: 45px;
       }
       .stat-label {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
       }
       .stat-value {
-        font-size: 0.85rem;
-      }
-      button {
-        padding: 12px 16px;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
       }
     }
   </style>
@@ -823,8 +870,10 @@
   </div>
 
   <script>
+    // Optimize grid size for mobile devices
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
     const rows = 10;
-    const cols = 6;
+    const cols = isMobile ? 5 : 6; // Fewer columns on mobile for better touch targets
     const initialRows = 5;
     const letterWeights = {
       E: 12, A: 9, I: 9, O: 8, N: 6, R: 6, T: 6, L: 4, S: 4, U: 4, D: 4, G: 3,
@@ -1224,13 +1273,14 @@
 
     function createThreeJSText(letter, isHigh, isSelected) {
       const canvas = document.createElement('canvas');
-      // Reduce canvas size on mobile to prevent memory issues
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const pixelRatio = isMobile ? 1 : Math.max(window.devicePixelRatio || 1, 2);
-      const size = isMobile ? 256 : 512 * pixelRatio; // Much smaller on mobile
+      // Optimize canvas size based on device - smaller on mobile to save memory
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const pixelRatio = isMobileDevice ? 1.5 : Math.min(window.devicePixelRatio || 1, 2);
+      const baseSize = isMobileDevice ? 256 : 512;
+      const size = baseSize * pixelRatio;
       canvas.width = size;
       canvas.height = size;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: false });
       
       // Enable text rendering hints for better quality
       ctx.imageSmoothingEnabled = true;
